@@ -63,8 +63,21 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-850/60">
-            {matches.map((m) => {
-              const spMatched = m.spHomeOdd !== undefined;
+            {!matches || matches.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="py-12 px-6 text-center text-slate-500 font-mono text-sm">
+                  <div className="flex flex-col items-center justify-center gap-3 py-6">
+                    <ShieldAlert className="h-10 w-10 text-amber-500/80 animate-pulse" />
+                    <span className="text-slate-400 font-semibold">No matches populated for this pool yet.</span>
+                    <span className="text-[11px] text-slate-600 max-w-md">
+                      Please trigger the "Sync Real-Time Odds" scraper or perform a "Factory Reset" from the headers to initialize clean defaults.
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              matches.map((m) => {
+                const spMatched = m.spHomeOdd !== undefined;
               const mozzPos = m.mozzPosition !== undefined ? m.mozzPosition : m.id;
               const spPos = m.spPosition !== undefined ? m.spPosition : m.id;
               const drift = Math.abs(mozzPos - spPos);
@@ -261,8 +274,9 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
                   </td>
                 </tr>
               );
-            })}
-          </tbody>
+            })
+          )}
+        </tbody>
         </table>
       </div>
     </div>
