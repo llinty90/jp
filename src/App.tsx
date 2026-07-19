@@ -286,7 +286,7 @@ export default function App() {
           )}
           {activeTab === "neural" && (
             <div className="flex flex-col gap-6 animate-fade-in">
-              <PositionalNeuralDashboard state={state} />
+              <PositionalNeuralDashboard state={state} onWarmStartSuccess={(data) => setState(data)} />
             </div>
           )}
 

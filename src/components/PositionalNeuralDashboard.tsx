@@ -1,30 +1,146 @@
 import React, { useState } from "react";
 import { DashboardState, PositionalOutcomeMetrics, NeuralPathActivation } from "../types";
-import { Cpu, Zap, Network, TrendingUp, AlertTriangle, ShieldAlert, GitMerge, BarChart2, CheckCircle2, RefreshCw } from "lucide-react";
+import { Cpu, Zap, Network, TrendingUp, AlertTriangle, ShieldAlert, GitMerge, BarChart2, CheckCircle2, RefreshCw, Upload, Flame, FileSpreadsheet, Check, AlertCircle } from "lucide-react";
 
 interface PositionalNeuralDashboardProps {
   state: DashboardState;
+  onWarmStartSuccess?: (data: DashboardState) => void;
 }
 
-export const PositionalNeuralDashboard: React.FC<PositionalNeuralDashboardProps> = ({ state }) => {
+export const PositionalNeuralDashboard: React.FC<PositionalNeuralDashboardProps> = ({ state, onWarmStartSuccess }) => {
   const [selectedPosition, setSelectedPosition] = useState<number>(4);
   const [activeType, setActiveType] = useState<"1x2" | "ou" | "ggng">("1x2");
+
+  const [dragActive, setDragActive] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isWarmStarting, setIsWarmStarting] = useState(false);
+  const [warmStartError, setWarmStartError] = useState<string | null>(null);
+  const [parsedRoundsCount, setParsedRoundsCount] = useState<number | null>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.name.endsWith(".csv")) {
+        setCsvFile(file);
+        setWarmStartError(null);
+        analyzeCsvPreview(file);
+      } else {
+        setWarmStartError("Only .csv files are supported.");
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.name.endsWith(".csv")) {
+        setCsvFile(file);
+        setWarmStartError(null);
+        analyzeCsvPreview(file);
+      } else {
+        setWarmStartError("Only .csv files are supported.");
+      }
+    }
+  };
+
+  const analyzeCsvPreview = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+      if (lines.length < 2) {
+        setWarmStartError("The selected CSV file is empty or missing data.");
+        setParsedRoundsCount(null);
+        return;
+      }
+      
+      const isWeekly = file.name.toLowerCase().includes("weekly");
+      const poolSize = isWeekly ? 17 : 16;
+      const matchesCount = lines.length - 1; // subtract header
+      const roundsCount = Math.floor(matchesCount / poolSize);
+      setParsedRoundsCount(roundsCount);
+    };
+    reader.readAsText(file);
+  };
+
+  const executeWarmStart = async () => {
+    if (!csvFile) return;
+    setIsWarmStarting(true);
+    setWarmStartError(null);
+
+    const isWeekly = csvFile.name.toLowerCase().includes("weekly");
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const csvContent = event.target?.result as string;
+      try {
+        const res = await fetch("/api/warmstart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ csvContent, isWeekly }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to parse historical csv on the server.");
+        }
+
+        const updatedState = await res.json();
+        if (onWarmStartSuccess) {
+          onWarmStartSuccess(updatedState);
+        }
+        setCsvFile(null);
+        setParsedRoundsCount(null);
+      } catch (err: any) {
+        setWarmStartError(err.message || "An unexpected error occurred during ingestion.");
+      } finally {
+        setIsWarmStarting(false);
+      }
+    };
+    reader.readAsText(csvFile);
+  };
 
   const metricsSummary = state.positionalMetricsSummary || {};
   const activeMetrics = metricsSummary[selectedPosition];
   const activations = state.neuralActivationPaths || [];
+
+  const totalRoundsLoaded = state.historicalRounds?.length || 0;
+  const isEmpiricalDataActive = totalRoundsLoaded > 100 || (state.historicalRounds && state.historicalRounds[0]?.date.includes("Round"));
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col gap-6 animate-fade-in w-full">
       {/* Tab Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
-          <h2 className="text-xl font-bold font-display tracking-tight text-white flex items-center gap-2.5">
+          <h2 className="text-xl font-bold font-display tracking-tight text-white flex items-center gap-2.5 flex-wrap">
             <Cpu className="h-6 w-6 text-purple-500 animate-pulse" />
             Conscious Positional Spell-State & MLP Neural Transition Decoder
+            {isEmpiricalDataActive ? (
+              <span className="flex items-center gap-1 bg-purple-950/80 text-purple-300 text-[10px] px-2.5 py-0.5 rounded-full border border-purple-800 font-mono font-bold uppercase animate-pulse">
+                <Flame className="h-3 w-3 text-purple-400 fill-purple-400" />
+                Empirical Warm-Start Active
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 bg-slate-950 text-slate-500 text-[10px] px-2.5 py-0.5 rounded-full border border-slate-800 font-mono">
+                Baseline Priors Active
+              </span>
+            )}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Analyzing central limit distributions, standard deviation variances, dry spells, and concurrent neuron co-firing sequence paths across 50 historical rounds.
+            Analyzing central limit distributions, standard deviation variances, dry spells, and concurrent neuron co-firing sequence paths across <strong className="text-purple-400 font-mono">{totalRoundsLoaded} rounds</strong> ({totalRoundsLoaded * (state.activePool.includes("weekly") ? 17 : 16)} total matches).
           </p>
         </div>
         <div className="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800 gap-1 self-start">
@@ -93,6 +209,90 @@ export const PositionalNeuralDashboard: React.FC<PositionalNeuralDashboardProps>
                 );
               })}
             </div>
+          </div>
+
+          {/* Empirical Ingestion & Warm Start Panel */}
+          <div className="bg-slate-950/40 p-4 border border-slate-800/80 rounded-2xl flex flex-col gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <Upload className="h-4 w-4 text-purple-400" />
+              Empirical Ingestion & Warm-Start Core
+            </span>
+            <p className="text-[11px] text-slate-500">
+              Drag & drop or select your <code className="text-purple-400 font-mono">jackpot_main_clean.csv</code> (Daily 16 games) or <code className="text-purple-400 font-mono">weekly_historical.csv</code> matches dataset to initialize 2,000+ empirical historical records!
+            </p>
+
+            <div 
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              className={`border border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 text-center transition-all ${
+                dragActive 
+                  ? "border-purple-500 bg-purple-950/20 text-purple-300" 
+                  : "border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700"
+              }`}
+            >
+              <FileSpreadsheet className="h-7 w-7 text-purple-500" />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-slate-200">
+                  {csvFile ? csvFile.name : "Drag & drop CSV dataset here"}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  {csvFile ? `Size: ${(csvFile.size / 1024).toFixed(1)} KB` : "or click to search computer"}
+                </span>
+              </div>
+              
+              {!csvFile && (
+                <label className="px-3 py-1 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded text-[10px] font-semibold cursor-pointer border border-slate-700">
+                  Select CSV File
+                  <input 
+                    type="file" 
+                    accept=".csv" 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                  />
+                </label>
+              )}
+
+              {csvFile && parsedRoundsCount !== null && (
+                <div className="flex flex-col items-center gap-2 mt-1">
+                  <span className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-300 px-2 py-0.5 rounded-full font-mono font-bold">
+                    Parsed {parsedRoundsCount} Rounds Successfully
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={executeWarmStart}
+                      disabled={isWarmStarting}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50"
+                    >
+                      {isWarmStarting ? (
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Flame className="h-3 w-3 fill-white" />
+                      )}
+                      {isWarmStarting ? "Ingesting..." : "Execute Warm-Start"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCsvFile(null);
+                        setParsedRoundsCount(null);
+                        setWarmStartError(null);
+                      }}
+                      className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded text-[10px] font-semibold cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {warmStartError && (
+              <div className="bg-rose-950/40 border border-rose-900/50 p-2.5 rounded-xl flex items-start gap-2 text-[10px] text-rose-400 font-mono">
+                <AlertCircle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
+                <span>{warmStartError}</span>
+              </div>
+            )}
           </div>
 
           {/* Active Sequential Activations list */}

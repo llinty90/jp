@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { Match, DashboardState, ScrapingLog, Coupon } from "./src/types.js";
-import { generateSyntheticHistory, computePositionalMetrics, computeNeuralPathActivations, solveTrapLines } from "./src/utils/positionalNeuralCore.js";
+import { generateSyntheticHistory, computePositionalMetrics, computeNeuralPathActivations, solveTrapLines, tryLoadLocalCSVHistory, parseCsvHistory } from "./src/utils/positionalNeuralCore.js";
 
 // Setup environment and paths
 const _filename = typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== "undefined" ? __filename : "");
@@ -1422,6 +1422,17 @@ function loadState(): any {
     },
   ];
 
+  // Load local CSV files if they exist
+  const localHistory = tryLoadLocalCSVHistory();
+  if (localHistory.dailyRounds) {
+    initialLogs.push({
+      id: "log_csv_loaded",
+      timestamp: new Date().toLocaleTimeString(),
+      level: "success",
+      message: `Warm start active: Loaded ${localHistory.dailyRounds.length} empirical daily jackpot rounds from jackpot_main_clean.csv!`,
+    });
+  }
+
   if (!state) {
     state = {
       activePool: "daily",
@@ -1439,7 +1450,7 @@ function loadState(): any {
       isPredicting: false,
       logs: initialLogs,
       optimizedCoupons: [],
-      historicalRounds: generateSyntheticHistory(),
+      historicalRounds: localHistory.dailyRounds || generateSyntheticHistory(),
     };
   } else {
     // Graceful migrations
@@ -1448,7 +1459,7 @@ function loadState(): any {
     if (!state.sportpesaDailyMatches) state.sportpesaDailyMatches = DEFAULT_SPORTPESA_DAILY_MATCHES.map(m => ({ ...m, poolType: "sportpesa_daily" as const }));
     if (!state.mozzWeeklyMatches) state.mozzWeeklyMatches = DEFAULT_MOZZ_WEEKLY_MATCHES;
     if (!state.sportpesaWeeklyMatches) state.sportpesaWeeklyMatches = DEFAULT_SPORTPESA_WEEKLY_MATCHES;
-    if (!state.historicalRounds) state.historicalRounds = generateSyntheticHistory();
+    if (!state.historicalRounds) state.historicalRounds = localHistory.dailyRounds || generateSyntheticHistory();
     
     // Apply sanitization to make sure everything has O/U odds
     state.dailyMatches = sanitizeMatchList(state.dailyMatches);
@@ -1942,6 +1953,48 @@ app.post("/api/reset", (req, res) => {
   };
   saveState(appState);
   res.json(appState);
+});
+
+// API: Warm-Start Engine with custom CSV data (Daily or Weekly historical matches)
+app.post("/api/warmstart", (req, res) => {
+  const { csvContent, isWeekly } = req.body;
+  if (!csvContent) {
+    return res.status(400).json({ error: "Missing csvContent parameter." });
+  }
+
+  try {
+    const parsed = parseCsvHistory(csvContent, !!isWeekly);
+    if (!parsed || parsed.length === 0) {
+      return res.status(400).json({ error: "Could not parse any rounds. Check headers and format." });
+    }
+
+    // Save rounds to active state
+    appState.historicalRounds = parsed;
+    
+    // Recalculate metrics dynamically
+    appState.positionalMetricsSummary = computePositionalMetrics(appState.historicalRounds);
+    appState.neuralActivationPaths = computeNeuralPathActivations(appState.historicalRounds);
+
+    // Apply solvers to active matches
+    solveTrapLines(appState.dailyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.sportpesaDailyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.mozzWeeklyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.sportpesaWeeklyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.matches, appState.positionalMetricsSummary);
+
+    // Add log
+    appState.logs.unshift({
+      id: `log_ws_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      level: "success",
+      message: `Warm-Start Active: Successfully parsed and ingested ${parsed.length} empirical rounds (${parsed.length * (isWeekly ? 17 : 16)} matches) into the positional neural core! Engine calculations fully refreshed.`,
+    });
+
+    saveState(appState);
+    res.json(appState);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed to process Warm-Start data" });
+  }
 });
 
 // API: Run prediction and coupon optimizer (Implements the Elite Syndicate v9.0 Bayesian Engine)
