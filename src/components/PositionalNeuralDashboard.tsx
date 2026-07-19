@@ -94,8 +94,17 @@ export const PositionalNeuralDashboard: React.FC<PositionalNeuralDashboardProps>
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || "Failed to parse historical csv on the server.");
+          let msg = `Server error (Status ${res.status})`;
+          try {
+            const errJson = await res.json();
+            if (errJson.error) msg = errJson.error;
+          } catch (_) {}
+          throw new Error(msg);
+        }
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server responded with HTML. The file payload might exceed maximum limits or the server is busy.");
         }
 
         const updatedState = await res.json();
@@ -294,6 +303,9 @@ export const PositionalNeuralDashboard: React.FC<PositionalNeuralDashboardProps>
               </div>
             )}
           </div>
+
+          {/* Gemini AI Calibration & Error Learning Core */}
+          <CalibrationPanelCore state={state} onCalibrateSuccess={onWarmStartSuccess} />
 
           {/* Active Sequential Activations list */}
           <div className="bg-slate-950/40 p-4 border border-slate-800/80 rounded-2xl flex flex-col gap-3">
@@ -572,6 +584,182 @@ export const PositionalNeuralDashboard: React.FC<PositionalNeuralDashboardProps>
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+interface CalibrationPanelCoreProps {
+  state: DashboardState;
+  onCalibrateSuccess?: (data: DashboardState) => void;
+}
+
+const CalibrationPanelCore: React.FC<CalibrationPanelCoreProps> = ({ state, onCalibrateSuccess }) => {
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [calibrationError, setCalibrationError] = useState<string | null>(null);
+
+  const handleCalibrate = async () => {
+    setIsCalibrating(true);
+    setCalibrationError(null);
+    try {
+      const res = await fetch("/api/calibrate", { method: "POST" });
+      if (!res.ok) {
+        let msg = `Server error (Status ${res.status})`;
+        try {
+          const errJson = await res.json();
+          if (errJson.error) msg = errJson.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      const updatedState = await res.json();
+      if (onCalibrateSuccess) {
+        onCalibrateSuccess(updatedState);
+      }
+    } catch (err: any) {
+      setCalibrationError(err.message || "An unexpected error occurred during recalibration.");
+    } finally {
+      setIsCalibrating(false);
+    }
+  };
+
+  const totalRounds = state.historicalRounds?.length || 0;
+
+  return (
+    <div className="bg-slate-950/40 p-5 border border-slate-800/80 rounded-2xl flex flex-col gap-4">
+      <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-2">
+        <Zap className="h-4 w-4 text-amber-500 fill-amber-500 animate-pulse" />
+        Gemini AI Error Recalibration Core
+      </span>
+      <p className="text-[11px] text-slate-400 leading-relaxed">
+        Tuned automatically via Gemini client proxy. Analyzes past prediction outcome discrepancies and fits theoretical Bayesian parameters closer to empirical ground truth frequencies.
+      </p>
+
+      {/* Calibration Trigger Button */}
+      <button
+        onClick={handleCalibrate}
+        disabled={isCalibrating || totalRounds === 0}
+        className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all border ${
+          totalRounds === 0
+            ? "bg-slate-900 border-slate-800/80 text-slate-500 cursor-not-allowed"
+            : "bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 text-slate-200 border-purple-500/30 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5"
+        }`}
+      >
+        {isCalibrating ? (
+          <RefreshCw className="h-3.5 w-3.5 animate-spin text-purple-400" />
+        ) : (
+          <Cpu className="h-3.5 w-3.5 text-amber-500" />
+        )}
+        {isCalibrating ? "Tuning Log-Odds Equations..." : "Recalibrate AI Core (Learn Mistakes)"}
+      </button>
+
+      {totalRounds === 0 && (
+        <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-850/60 text-[10px] text-slate-500 text-center italic">
+          * Please upload historical Warm-Start CSV rounds above to unlock AI recalibration.
+        </div>
+      )}
+
+      {calibrationError && (
+        <div className="bg-rose-950/40 border border-rose-900/50 p-2.5 rounded-xl flex items-start gap-2 text-[10px] text-rose-400 font-mono">
+          <AlertCircle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+          <span>{calibrationError}</span>
+        </div>
+      )}
+
+      {/* Parameter Displays */}
+      {state.calibratedParameters ? (
+        <div className="flex flex-col gap-3 border-t border-slate-800/60 pt-3">
+          <div className="bg-purple-950/20 border border-purple-900/40 p-3.5 rounded-xl flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-bold text-purple-300 font-mono uppercase tracking-wider">
+                Bayesian Alignment Fit
+              </span>
+              <span className="text-xs font-mono font-black text-amber-400 bg-amber-950/50 border border-amber-900/40 px-2 py-0.5 rounded">
+                {state.calibratedParameters.accuracyEstimate}%
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 leading-relaxed font-sans">
+              <span className="text-purple-300 font-bold font-mono">Feedback Insight:</span> {state.calibratedParameters.reasoning}
+            </p>
+            <span className="text-[9px] text-slate-500 font-mono block text-right mt-1">
+              Calibrated At: {state.calibratedParameters.lastCalibratedAt || "N/A"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-center bg-slate-950/40 p-2.5 rounded-xl border border-slate-850/60">
+            <div className="flex flex-col">
+              <span className="text-[9px] text-slate-500 uppercase font-mono">H-Prior</span>
+              <span className="text-xs font-mono font-bold text-slate-300">
+                {(state.calibratedParameters.baselinePriorH * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex flex-col border-x border-slate-800/40">
+              <span className="text-[9px] text-slate-500 uppercase font-mono">D-Prior</span>
+              <span className="text-xs font-mono font-bold text-slate-300">
+                {(state.calibratedParameters.baselinePriorD * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] text-slate-500 uppercase font-mono">A-Prior</span>
+              <span className="text-xs font-mono font-bold text-slate-300">
+                {(state.calibratedParameters.baselinePriorA * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 bg-slate-900/30 p-3 rounded-xl border border-slate-800/40 text-[10px] font-mono">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Log-Odds Weight:</span>
+              <span className="text-slate-300">
+                Prior {Math.round(state.calibratedParameters.priorWeight * 100)}% / Market {Math.round(state.calibratedParameters.marketWeight * 100)}%
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Referee Home/Draw:</span>
+              <span className="text-slate-300">
+                +{state.calibratedParameters.refereeHomeBiasMultiplier.toFixed(2)}x / +{state.calibratedParameters.refereeDrawRateMultiplier.toFixed(2)}x
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Sponsor Draw Boost:</span>
+              <span className="text-slate-300">
+                +{state.calibratedParameters.sponsorDrawBoost.toFixed(2)} log-odds
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Adversarial Traps:</span>
+              <span className="text-slate-300">
+                -{state.calibratedParameters.trapHomeDiscount.toFixed(2)} / +{state.calibratedParameters.trapAwayPremium.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Positional Sigmas:</span>
+              <span className="text-slate-300">
+                Draw: {state.calibratedParameters.positionalSpellDrawMultiplier.toFixed(2)} / Away: {state.calibratedParameters.positionalSpellAwayMultiplier.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Smoothing Factor:</span>
+              <span className="text-slate-300">
+                &alpha; = {state.calibratedParameters.dirichletAlpha.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">LLN Pool Correction:</span>
+              <span className="text-slate-300">
+                Strength: {state.calibratedParameters.llnCorrectionStrength.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-slate-900/30 p-4 border border-slate-800/40 rounded-xl text-center text-slate-500 text-[10px] font-mono leading-relaxed">
+          Prediction engine is running on standard fallback priors:
+          <div className="flex justify-around mt-2 text-slate-400">
+            <span>H: 38.2%</span>
+            <span>D: 25.7%</span>
+            <span>A: 36.1%</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

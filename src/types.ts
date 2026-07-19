@@ -163,4 +163,25 @@ export interface DashboardState {
     maxPositionalShiftFixture?: string;
     drawPatternConformity?: number; // % match of actual to historical structural draws
   };
+  calibratedParameters?: CalibratedParameters;
 }
+
+export interface CalibratedParameters {
+  baselinePriorH: number;
+  baselinePriorD: number;
+  baselinePriorA: number;
+  priorWeight: number;
+  marketWeight: number;
+  refereeHomeBiasMultiplier: number;
+  refereeDrawRateMultiplier: number;
+  sponsorDrawBoost: number;
+  trapHomeDiscount: number;
+  trapAwayPremium: number;
+  positionalSpellDrawMultiplier: number;
+  positionalSpellAwayMultiplier: number;
+  dirichletAlpha: number;
+  llnCorrectionStrength: number;
+  accuracyEstimate: number; // dynamic fit rating
+  lastCalibratedAt?: string;
+}
+

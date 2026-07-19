@@ -15,10 +15,27 @@ export default function App() {
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [activeTab, setActiveTab] = useState<"fixtures" | "predictions" | "neural">("fixtures");
 
+  // Helper to handle API responses safely (avoiding JSON parsing errors on HTML fallback pages during server boot/restarts)
+  const handleResponse = async (res: Response) => {
+    if (!res.ok) {
+      let msg = `Server error (Status ${res.status})`;
+      try {
+        const errJson = await res.json();
+        if (errJson.error) msg = errJson.error;
+      } catch (_) {}
+      throw new Error(msg);
+    }
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error("Server responded with HTML. The backend might be starting or restarting. Please try again in a few seconds.");
+    }
+    return res.json();
+  };
+
   // Load state on mount
   useEffect(() => {
     fetch("/api/state")
-      .then((res) => res.json())
+      .then(handleResponse)
       .then((data) => setState(data))
       .catch((err) => console.error("Failed to load initial state:", err));
   }, []);
@@ -31,7 +48,7 @@ export default function App() {
           <h3 className="font-display font-semibold text-lg">
             Warming Bayesian Prediction Core...
           </h3>
-          <p className="text-slate-500 text-xs font-mono">Initializing local cache indices</p>
+          <p className="text-slate-500 text-xs font-mono">Initializing local cache indices (Or server is restarting)</p>
         </div>
       </div>
     );
@@ -42,9 +59,10 @@ export default function App() {
     setState((prev) => prev ? { ...prev, isScraping: true } : null);
     try {
       const res = await fetch("/api/scrape", { method: "POST" });
-      const data = await res.json();
+      const data = await handleResponse(res);
       setState(data);
-    } catch (err) {
+    } catch (err: any) {
+      alert(err.message || "Scrape failed");
       console.error("Scrape failed:", err);
       setState((prev) => prev ? { ...prev, isScraping: false } : null);
     }
@@ -55,11 +73,12 @@ export default function App() {
     setState((prev) => prev ? { ...prev, isPredicting: true } : null);
     try {
       const res = await fetch("/api/predict", { method: "POST" });
-      const data = await res.json();
+      const data = await handleResponse(res);
       setState(data);
       // Automatically switch to predictions tab on generation complete
       setActiveTab("predictions");
-    } catch (err) {
+    } catch (err: any) {
+      alert(err.message || "Prediction failed");
       console.error("Prediction failed:", err);
       setState((prev) => prev ? { ...prev, isPredicting: false } : null);
     }
@@ -73,9 +92,10 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedFields),
       });
-      const data = await res.json();
+      const data = await handleResponse(res);
       setState(data);
-    } catch (err) {
+    } catch (err: any) {
+      alert(err.message || "Config update failed");
       console.error("Config update failed:", err);
     }
   };
@@ -89,10 +109,11 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: editingMatch.id, ...updatedFields }),
       });
-      const data = await res.json();
+      const data = await handleResponse(res);
       setState(data);
       setEditingMatch(null);
-    } catch (err) {
+    } catch (err: any) {
+      alert(err.message || "Match override failed");
       console.error("Match override failed:", err);
     }
   };
@@ -102,10 +123,11 @@ export default function App() {
     if (!confirm("Are you sure you want to purge all active configurations and logs?")) return;
     try {
       const res = await fetch("/api/reset", { method: "POST" });
-      const data = await res.json();
+      const data = await handleResponse(res);
       setState(data);
       setActiveTab("fixtures");
-    } catch (err) {
+    } catch (err: any) {
+      alert(err.message || "Reset failed");
       console.error("Reset failed:", err);
     }
   };
@@ -118,10 +140,11 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ poolType }),
       });
-      const data = await res.json();
+      const data = await handleResponse(res);
       setState(data);
       setActiveTab("fixtures");
-    } catch (err) {
+    } catch (err: any) {
+      alert(err.message || "Pool selection failed");
       console.error("Pool selection failed:", err);
     }
   };
