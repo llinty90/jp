@@ -1,0 +1,6 @@
+{
+  "name": "Elite Ghost Daily Jackpot Predictor",
+  "description": "Intelligent daily jackpot scraper, fuzzy name matching engine, and Bayesian prediction system with a user-friendly manual-input dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
