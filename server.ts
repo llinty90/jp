@@ -59,7 +59,63 @@ const BASELINE_A = 0.361;
 const DEFAULT_MATCHES: Match[] = [
   {
     id: 1,
-    matchDate: "05.07.2026",
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Sweden",
+    league: "Club Friendly",
+    homeTeam: "Hammarby IF",
+    awayTeam: "Anderlecht",
+    mozzHomeOdd: 2.90,
+    mozzDrawOdd: 3.30,
+    mozzAwayOdd: 2.43,
+    referee: "Andreas Ekberg",
+    refereeHomeBias: 0.05,
+    refereeDrawRate: 0.31,
+    refereeMatches: 45,
+    stadiumCapacity: 30000,
+    attendanceRate: 0.85,
+    altitudeM: 10,
+    homeSponsor: "Husqvarna",
+    awaySponsor: "Belfius",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.28,
+    h2hAwayWinRate: 0.35,
+    overOdds: 1.85,
+    underOdds: 1.95,
+  },
+  {
+    id: 2,
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Ukraine",
+    league: "Champions League",
+    homeTeam: "Dynamo Kyiv",
+    awayTeam: "PAOK Thessaloniki",
+    mozzHomeOdd: 2.60,
+    mozzDrawOdd: 3.20,
+    mozzAwayOdd: 2.75,
+    referee: "Szymon Marciniak",
+    refereeHomeBias: 0.04,
+    refereeDrawRate: 0.25,
+    refereeMatches: 82,
+    stadiumCapacity: 70050,
+    attendanceRate: 0.75,
+    altitudeM: 179,
+    homeSponsor: "Favbet",
+    awaySponsor: "Stoiximan",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.30,
+    h2hAwayWinRate: 0.30,
+    overOdds: 1.90,
+    underOdds: 1.80,
+  },
+  {
+    id: 3,
+    matchDate: "23.07.2026",
     matchTime: "16:00",
     country: "Kenya",
     league: "Kenyan Premier League",
@@ -86,8 +142,36 @@ const DEFAULT_MATCHES: Match[] = [
     underOdds: 1.80,
   },
   {
-    id: 2,
-    matchDate: "05.07.2026",
+    id: 4,
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Sweden",
+    league: "Allsvenskan",
+    homeTeam: "GAIS Goteborg",
+    awayTeam: "FC Nordsjælland",
+    mozzHomeOdd: 2.90,
+    mozzDrawOdd: 3.15,
+    mozzAwayOdd: 2.38,
+    referee: "Glenn Nyberg",
+    refereeHomeBias: 0.01,
+    refereeDrawRate: 0.32,
+    refereeMatches: 64,
+    stadiumCapacity: 18000,
+    attendanceRate: 0.60,
+    altitudeM: 12,
+    homeSponsor: "Select",
+    awaySponsor: "DHL",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.33,
+    h2hAwayWinRate: 0.38,
+    overOdds: 1.75,
+    underOdds: 2.05,
+  },
+  {
+    id: 5,
+    matchDate: "23.07.2026",
     matchTime: "17:30",
     country: "Tanzania",
     league: "Tanzanian Ligi Kuu",
@@ -105,7 +189,7 @@ const DEFAULT_MATCHES: Match[] = [
     altitudeM: 15,
     homeSponsor: "SportPesa",
     awaySponsor: "SportPesa",
-    sponsorsMatch: true, // Sponsors Match draw booster!
+    sponsorsMatch: true,
     isDerby: true,
     relegationBattle: false,
     h2hDrawRate: 0.40,
@@ -114,372 +198,36 @@ const DEFAULT_MATCHES: Match[] = [
     underOdds: 1.70,
   },
   {
-    id: 3,
-    matchDate: "05.07.2026",
-    matchTime: "19:45",
-    country: "Ireland",
-    league: "Irish Premier Division",
-    homeTeam: "Bohemians Dublin",
-    awayTeam: "Shelbourne FC",
-    mozzHomeOdd: 2.70,
-    mozzDrawOdd: 3.10,
-    mozzAwayOdd: 2.50,
-    referee: "Damien MacGraith",
-    refereeHomeBias: -0.05,
-    refereeDrawRate: 0.28,
-    refereeMatches: 32,
-    stadiumCapacity: 4500,
-    attendanceRate: 0.70,
-    altitudeM: 50,
-    homeSponsor: "Dublin-Bus",
-    awaySponsor: "Comer-Group",
-    sponsorsMatch: false,
-    isDerby: true,
-    relegationBattle: false,
-    h2hDrawRate: 0.32,
-    h2hAwayWinRate: 0.35,
-    overOdds: 2.25,
-    underOdds: 1.55,
-  },
-  {
-    id: 4,
-    matchDate: "05.07.2026",
-    matchTime: "20:00",
-    country: "Ireland",
-    league: "Irish Premier Division",
-    homeTeam: "Cork City FC",
-    awayTeam: "Derry City",
-    mozzHomeOdd: 3.40,
-    mozzDrawOdd: 3.00,
-    mozzAwayOdd: 2.10,
-    referee: "Rob Harvey",
-    refereeHomeBias: 0.04,
-    refereeDrawRate: 0.22,
-    refereeMatches: 55,
-    stadiumCapacity: 7500,
-    attendanceRate: 0.65,
-    altitudeM: 10,
-    homeSponsor: "Clonakilty",
-    awaySponsor: "Diamond-Group",
-    sponsorsMatch: false,
-    isDerby: false,
-    relegationBattle: true,
-    h2hDrawRate: 0.25,
-    h2hAwayWinRate: 0.45,
-    overOdds: 2.05,
-    underOdds: 1.72,
-  },
-  {
-    id: 5,
-    matchDate: "05.07.2026",
-    matchTime: "15:00",
-    country: "Kenya",
-    league: "Kenyan Premier League",
-    homeTeam: "KCB FC",
-    awayTeam: "Tusker FC",
-    mozzHomeOdd: 2.45,
-    mozzDrawOdd: 2.80,
-    mozzAwayOdd: 2.90,
-    referee: "Moses Amaiah",
-    refereeHomeBias: 0.05,
-    refereeDrawRate: 0.33,
-    refereeMatches: 24,
-    stadiumCapacity: 15000,
-    attendanceRate: 0.40,
-    altitudeM: 1684,
-    homeSponsor: "KCB-Bank",
-    awaySponsor: "Tusker",
-    sponsorsMatch: false,
-    isDerby: false,
-    relegationBattle: false,
-    h2hDrawRate: 0.38,
-    h2hAwayWinRate: 0.28,
-    overOdds: 2.30,
-    underOdds: 1.52,
-  },
-  {
     id: 6,
-    matchDate: "06.07.2026",
-    matchTime: "18:00",
-    country: "Morocco",
-    league: "Morocco Botola Pro",
-    homeTeam: "Renaissance de Berkane",
-    awayTeam: "Wydad Casablanca",
-    mozzHomeOdd: 2.15,
-    mozzDrawOdd: 3.10,
-    mozzAwayOdd: 3.20,
-    referee: "Redouane Jiyed",
-    refereeHomeBias: 0.12,
-    refereeDrawRate: 0.29,
-    refereeMatches: 82,
-    stadiumCapacity: 15000,
-    attendanceRate: 0.80,
-    altitudeM: 120,
-    homeSponsor: "Gold",
-    awaySponsor: "Ingelec",
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Romania",
+    league: "Liga I",
+    homeTeam: "U. Cluj",
+    awayTeam: "SK Brann",
+    mozzHomeOdd: 2.52,
+    mozzDrawOdd: 3.17,
+    mozzAwayOdd: 2.73,
+    referee: "Radu Petrescu",
+    refereeHomeBias: 0.06,
+    refereeDrawRate: 0.28,
+    refereeMatches: 55,
+    stadiumCapacity: 30200,
+    attendanceRate: 0.70,
+    altitudeM: 340,
+    homeSponsor: "Superbet",
+    awaySponsor: "Fjordkraft",
     sponsorsMatch: false,
     isDerby: false,
-    relegationBattle: false,
-    h2hDrawRate: 0.30,
-    h2hAwayWinRate: 0.25,
-    overOdds: 2.15,
-    underOdds: 1.65,
-  },
-  {
-    id: 7,
-    matchDate: "06.07.2026",
-    matchTime: "20:30",
-    country: "Morocco",
-    league: "Morocco Botola Pro",
-    homeTeam: "Raja Casablanca",
-    awayTeam: "FAR Rabat",
-    mozzHomeOdd: 2.00,
-    mozzDrawOdd: 3.00,
-    mozzAwayOdd: 3.60,
-    referee: "Samir Guezzaz",
-    refereeHomeBias: 0.06,
-    refereeDrawRate: 0.31,
-    refereeMatches: 64,
-    stadiumCapacity: 45000,
-    attendanceRate: 0.90,
-    altitudeM: 50,
-    homeSponsor: "1XBet",
-    awaySponsor: "AS-FAR",
-    sponsorsMatch: false,
-    isDerby: true,
-    relegationBattle: false,
-    h2hDrawRate: 0.35,
-    h2hAwayWinRate: 0.22,
-    overOdds: 2.40,
-    underOdds: 1.50,
-  },
-  {
-    id: 8,
-    matchDate: "06.07.2026",
-    matchTime: "21:00",
-    country: "Egypt",
-    league: "Egypt Premier League",
-    homeTeam: "Al Ahly",
-    awayTeam: "Zamalek",
-    mozzHomeOdd: 1.95,
-    mozzDrawOdd: 3.30,
-    mozzAwayOdd: 3.50,
-    referee: "Amin Omar",
-    refereeHomeBias: 0.05,
-    refereeDrawRate: 0.25,
-    refereeMatches: 90,
-    stadiumCapacity: 75000,
-    attendanceRate: 0.85,
-    altitudeM: 74,
-    homeSponsor: "WE",
-    awaySponsor: "Zamalek",
-    sponsorsMatch: false,
-    isDerby: true,
     relegationBattle: false,
     h2hDrawRate: 0.29,
-    h2hAwayWinRate: 0.26,
-    overOdds: 1.90,
+    h2hAwayWinRate: 0.31,
+    overOdds: 1.95,
     underOdds: 1.85,
   },
   {
-    id: 9,
-    matchDate: "06.07.2026",
-    matchTime: "15:30",
-    country: "South Africa",
-    league: "SA Premier Division",
-    homeTeam: "Orlando Pirates",
-    awayTeam: "Kaizer Chiefs",
-    mozzHomeOdd: 2.20,
-    mozzDrawOdd: 2.95,
-    mozzAwayOdd: 3.25,
-    referee: "Victor Gomes",
-    refereeHomeBias: 0.03,
-    refereeDrawRate: 0.30,
-    refereeMatches: 110,
-    stadiumCapacity: 90000,
-    attendanceRate: 0.98,
-    altitudeM: 1753,
-    homeSponsor: "Vodacom",
-    awaySponsor: "Vodacom",
-    sponsorsMatch: true, // Sponsors Match draw booster!
-    isDerby: true,
-    relegationBattle: false,
-    h2hDrawRate: 0.38,
-    h2hAwayWinRate: 0.25,
-    overOdds: 2.20,
-    underOdds: 1.60,
-  },
-  {
-    id: 10,
-    matchDate: "06.07.2026",
-    matchTime: "19:45",
-    country: "Ireland",
-    league: "Irish Premier Division",
-    homeTeam: "Waterford FC",
-    awayTeam: "Galway United",
-    mozzHomeOdd: 2.50,
-    mozzDrawOdd: 3.00,
-    mozzAwayOdd: 2.80,
-    referee: "Paul McLaughlin",
-    refereeHomeBias: 0.01,
-    refereeDrawRate: 0.27,
-    refereeMatches: 48,
-    stadiumCapacity: 5000,
-    attendanceRate: 0.55,
-    altitudeM: 15,
-    homeSponsor: "Waterford-Credit-Union",
-    awaySponsor: "Supermacs",
-    sponsorsMatch: false,
-    isDerby: false,
-    relegationBattle: false,
-    h2hDrawRate: 0.31,
-    h2hAwayWinRate: 0.30,
-    overOdds: 2.15,
-    underOdds: 1.65,
-  },
-  {
-    id: 11,
-    matchDate: "07.07.2026",
-    matchTime: "19:45",
-    country: "Ireland",
-    league: "Irish Premier Division",
-    homeTeam: "Dundalk FC",
-    awayTeam: "Shamrock Rovers",
-    mozzHomeOdd: 3.80,
-    mozzDrawOdd: 3.20,
-    mozzAwayOdd: 1.90,
-    referee: "Neil Doyle",
-    refereeHomeBias: 0.06,
-    refereeDrawRate: 0.22,
-    refereeMatches: 70,
-    stadiumCapacity: 4500,
-    attendanceRate: 0.60,
-    altitudeM: 30,
-    homeSponsor: "Fyffes",
-    awaySponsor: "JD-Sports",
-    sponsorsMatch: false,
-    isDerby: false,
-    relegationBattle: true,
-    h2hDrawRate: 0.28,
-    h2hAwayWinRate: 0.48,
-    overOdds: 1.95,
-    underOdds: 1.80,
-  },
-  {
-    id: 12,
-    matchDate: "07.07.2026",
-    matchTime: "19:45",
-    country: "Ireland",
-    league: "Irish Premier Division",
-    homeTeam: "Sligo Rovers",
-    awayTeam: "Drogheda United",
-    mozzHomeOdd: 2.10,
-    mozzDrawOdd: 3.15,
-    mozzAwayOdd: 3.30,
-    referee: "Derek Tomney",
-    refereeHomeBias: 0.08,
-    refereeDrawRate: 0.26,
-    refereeMatches: 52,
-    stadiumCapacity: 4000,
-    attendanceRate: 0.50,
-    altitudeM: 25,
-    homeSponsor: "Avant-Money",
-    awaySponsor: "Scotch-Hall",
-    sponsorsMatch: false,
-    isDerby: false,
-    relegationBattle: true,
-    h2hDrawRate: 0.33,
-    h2hAwayWinRate: 0.27,
-    overOdds: 2.00,
-    underOdds: 1.75,
-  },
-  {
-    id: 13,
-    matchDate: "07.07.2026",
-    matchTime: "21:00",
-    country: "Saudi Arabia",
-    league: "Saudi Pro League",
-    homeTeam: "Al Ittihad",
-    awayTeam: "Al Hilal",
-    mozzHomeOdd: 3.00,
-    mozzDrawOdd: 3.40,
-    mozzAwayOdd: 2.10,
-    referee: "Wilmar Roldan",
-    refereeHomeBias: 0.04,
-    refereeDrawRate: 0.23,
-    refereeMatches: 120,
-    stadiumCapacity: 62000,
-    attendanceRate: 0.90,
-    altitudeM: 12,
-    homeSponsor: "Darco",
-    awaySponsor: "Jahez",
-    sponsorsMatch: false,
-    isDerby: true,
-    relegationBattle: false,
-    h2hDrawRate: 0.26,
-    h2hAwayWinRate: 0.48,
-    overOdds: 1.70,
-    underOdds: 2.10,
-  },
-  {
-    id: 14,
-    matchDate: "07.07.2026",
-    matchTime: "15:00",
-    country: "Kenya",
-    league: "Kenyan Premier League",
-    homeTeam: "Ulinzi Stars",
-    awayTeam: "AFC Leopards",
-    mozzHomeOdd: 2.60,
-    mozzDrawOdd: 2.85,
-    mozzAwayOdd: 2.70,
-    referee: "Anthony Juma",
-    refereeHomeBias: 0.02,
-    refereeDrawRate: 0.38,
-    refereeMatches: 30,
-    stadiumCapacity: 10000,
-    attendanceRate: 0.50,
-    altitudeM: 1795,
-    homeSponsor: "KDF",
-    awaySponsor: "Betika",
-    sponsorsMatch: false,
-    isDerby: false,
-    relegationBattle: false,
-    h2hDrawRate: 0.42,
-    h2hAwayWinRate: 0.29,
-    overOdds: 2.35,
-    underOdds: 1.48,
-  },
-  {
-    id: 15,
-    matchDate: "07.07.2026",
-    matchTime: "18:00",
-    country: "Jamaica",
-    league: "Jamaica Premier League",
-    homeTeam: "Waterhouse FC",
-    awayTeam: "Mount Pleasant",
-    mozzHomeOdd: 2.80,
-    mozzDrawOdd: 2.90,
-    mozzAwayOdd: 2.50,
-    referee: "Oshane Nation",
-    refereeHomeBias: 0.05,
-    refereeDrawRate: 0.32,
-    refereeMatches: 38,
-    stadiumCapacity: 5000,
-    attendanceRate: 0.45,
-    altitudeM: 10,
-    homeSponsor: "Supreme-Ventures",
-    awaySponsor: "Mount-Pleasant",
-    sponsorsMatch: false,
-    isDerby: false,
-    relegationBattle: false,
-    h2hDrawRate: 0.35,
-    h2hAwayWinRate: 0.32,
-    overOdds: 2.20,
-    underOdds: 1.55,
-  },
-  {
-    id: 16,
-    matchDate: "07.07.2026",
+    id: 7,
+    matchDate: "23.07.2026",
     matchTime: "22:00",
     country: "USA",
     league: "USA MLS",
@@ -505,6 +253,471 @@ const DEFAULT_MATCHES: Match[] = [
     overOdds: 1.80,
     underOdds: 1.95,
   },
+  {
+    id: 8,
+    matchDate: "23.07.2026",
+    matchTime: "21:30",
+    country: "Israel",
+    league: "Ligat HaAl",
+    homeTeam: "Hapoel Tel Aviv",
+    awayTeam: "Ludogorets Razgrad",
+    mozzHomeOdd: 3.05,
+    mozzDrawOdd: 3.05,
+    mozzAwayOdd: 2.38,
+    referee: "Orel Grinfeld",
+    refereeHomeBias: 0.03,
+    refereeDrawRate: 0.27,
+    refereeMatches: 72,
+    stadiumCapacity: 29400,
+    attendanceRate: 0.50,
+    altitudeM: 20,
+    homeSponsor: "Arko",
+    awaySponsor: "Efbet",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.31,
+    h2hAwayWinRate: 0.40,
+    overOdds: 2.00,
+    underOdds: 1.72,
+  },
+  {
+    id: 9,
+    matchDate: "23.07.2026",
+    matchTime: "21:00",
+    country: "Croatia",
+    league: "HNL",
+    homeTeam: "NK Varaždin",
+    awayTeam: "Baumit Jablonec",
+    mozzHomeOdd: 2.43,
+    mozzDrawOdd: 3.40,
+    mozzAwayOdd: 2.65,
+    referee: "Duje Strukan",
+    refereeHomeBias: 0.05,
+    refereeDrawRate: 0.32,
+    refereeMatches: 48,
+    stadiumCapacity: 8800,
+    attendanceRate: 0.45,
+    altitudeM: 173,
+    homeSponsor: "Grosuplje",
+    awaySponsor: "Baumit",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.35,
+    h2hAwayWinRate: 0.32,
+    overOdds: 2.10,
+    underOdds: 1.65,
+  },
+  {
+    id: 10,
+    matchDate: "24.07.2026",
+    matchTime: "20:00",
+    country: "Denmark",
+    league: "Superliga",
+    homeTeam: "AaB",
+    awayTeam: "Hillerød Fodbold",
+    mozzHomeOdd: 2.21,
+    mozzDrawOdd: 3.45,
+    mozzAwayOdd: 2.65,
+    referee: "Jakob Kehlet",
+    refereeHomeBias: 0.08,
+    refereeDrawRate: 0.25,
+    refereeMatches: 90,
+    stadiumCapacity: 13800,
+    attendanceRate: 0.65,
+    altitudeM: 15,
+    homeSponsor: "Arbejdernes",
+    awaySponsor: "Spar",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.27,
+    h2hAwayWinRate: 0.29,
+    overOdds: 1.85,
+    underOdds: 1.90,
+  },
+  {
+    id: 11,
+    matchDate: "23.07.2026",
+    matchTime: "22:00",
+    country: "Croatia",
+    league: "HNL",
+    homeTeam: "Hajduk Split",
+    awayTeam: "Pafos FC",
+    mozzHomeOdd: 2.44,
+    mozzDrawOdd: 3.20,
+    mozzAwayOdd: 2.95,
+    referee: "Igor Pajac",
+    refereeHomeBias: 0.04,
+    refereeDrawRate: 0.30,
+    refereeMatches: 54,
+    stadiumCapacity: 34000,
+    attendanceRate: 0.80,
+    altitudeM: 5,
+    homeSponsor: "Tommy",
+    awaySponsor: "Korantina",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.34,
+    h2hAwayWinRate: 0.25,
+    overOdds: 2.05,
+    underOdds: 1.70,
+  },
+  {
+    id: 12,
+    matchDate: "24.07.2026",
+    matchTime: "21:30",
+    country: "Romania",
+    league: "Liga I",
+    homeTeam: "Argeș Pitești",
+    awayTeam: "Petrolul Ploiești",
+    mozzHomeOdd: 2.30,
+    mozzDrawOdd: 2.95,
+    mozzAwayOdd: 2.95,
+    referee: "Istvan Kovacs",
+    refereeHomeBias: 0.03,
+    refereeDrawRate: 0.33,
+    refereeMatches: 112,
+    stadiumCapacity: 15000,
+    attendanceRate: 0.55,
+    altitudeM: 287,
+    homeSponsor: "GetVos",
+    awaySponsor: "Veolia",
+    sponsorsMatch: false,
+    isDerby: true,
+    relegationBattle: false,
+    h2hDrawRate: 0.36,
+    h2hAwayWinRate: 0.30,
+    overOdds: 2.40,
+    underOdds: 1.50,
+  },
+  {
+    id: 13,
+    matchDate: "24.07.2026",
+    matchTime: "20:30",
+    country: "Switzerland",
+    league: "Challenge League",
+    homeTeam: "FC Rapperswil-Jona",
+    awayTeam: "FC Wil 1900",
+    mozzHomeOdd: 2.65,
+    mozzDrawOdd: 3.40,
+    mozzAwayOdd: 2.25,
+    referee: "Fedayi San",
+    refereeHomeBias: 0.02,
+    refereeDrawRate: 0.34,
+    refereeMatches: 42,
+    stadiumCapacity: 4000,
+    attendanceRate: 0.40,
+    altitudeM: 409,
+    homeSponsor: "Rapperswil",
+    awaySponsor: "Lipo",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.38,
+    h2hAwayWinRate: 0.35,
+    overOdds: 2.15,
+    underOdds: 1.62,
+  },
+  {
+    id: 14,
+    matchDate: "24.07.2026",
+    matchTime: "21:45",
+    country: "Ireland",
+    league: "First Division",
+    homeTeam: "Cobh Ramblers",
+    awayTeam: "Bray Wanderers",
+    mozzHomeOdd: 2.50,
+    mozzDrawOdd: 3.30,
+    mozzAwayOdd: 2.41,
+    referee: "Alan Patchell",
+    refereeHomeBias: 0.06,
+    refereeDrawRate: 0.28,
+    refereeMatches: 35,
+    stadiumCapacity: 3000,
+    attendanceRate: 0.45,
+    altitudeM: 22,
+    homeSponsor: "Hennessy",
+    awaySponsor: "BrayCredit",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.32,
+    h2hAwayWinRate: 0.32,
+    overOdds: 2.00,
+    underOdds: 1.72,
+  },
+  {
+    id: 15,
+    matchDate: "24.07.2026",
+    matchTime: "21:30",
+    country: "Poland",
+    league: "Ekstraklasa",
+    homeTeam: "Pogoń Szczecin",
+    awayTeam: "Legia Warsaw",
+    mozzHomeOdd: 2.75,
+    mozzDrawOdd: 3.15,
+    mozzAwayOdd: 2.39,
+    referee: "Daniel Stefanski",
+    refereeHomeBias: 0.05,
+    refereeDrawRate: 0.29,
+    refereeMatches: 88,
+    stadiumCapacity: 21100,
+    attendanceRate: 0.75,
+    altitudeM: 18,
+    homeSponsor: "Toyota",
+    awaySponsor: "Plus500",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.30,
+    h2hAwayWinRate: 0.33,
+    overOdds: 1.95,
+    underOdds: 1.80,
+  },
+  {
+    id: 16,
+    matchDate: "24.07.2026",
+    matchTime: "21:45",
+    country: "Ireland",
+    league: "First Division",
+    homeTeam: "Treaty United",
+    awayTeam: "Athlone Town AFC",
+    mozzHomeOdd: 2.75,
+    mozzDrawOdd: 3.10,
+    mozzAwayOdd: 2.35,
+    referee: "Marc Lynch",
+    refereeHomeBias: 0.03,
+    refereeDrawRate: 0.32,
+    refereeMatches: 24,
+    stadiumCapacity: 4500,
+    attendanceRate: 0.50,
+    altitudeM: 40,
+    homeSponsor: "LimerickPost",
+    awaySponsor: "Scollan",
+    sponsorsMatch: false,
+    isDerby: false,
+    relegationBattle: false,
+    h2hDrawRate: 0.33,
+    h2hAwayWinRate: 0.35,
+    overOdds: 2.10,
+    underOdds: 1.65,
+  },
+];
+
+// 13 matches for SportPesa Daily Jackpot (From the user screenshot)
+const DEFAULT_SPORTPESA_DAILY_MATCHES: Match[] = [
+  {
+    id: 1,
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Sweden",
+    league: "Club Friendly",
+    homeTeam: "Hammarby",
+    awayTeam: "Anderlecht",
+    mozzHomeOdd: 2.90,
+    mozzDrawOdd: 3.30,
+    mozzAwayOdd: 2.43,
+    poolType: "sportpesa_weekly", // maps to a sportpesa daily counterpart conceptually
+    spPosition: 1,
+    mozzPosition: 1,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 2,
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Sweden",
+    league: "Allsvenskan",
+    homeTeam: "GAIS",
+    awayTeam: "FC Nordsjalland",
+    mozzHomeOdd: 2.90,
+    mozzDrawOdd: 3.15,
+    mozzAwayOdd: 2.38,
+    spPosition: 2,
+    mozzPosition: 4,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 3,
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Ukraine",
+    league: "Champions League",
+    homeTeam: "Dynamo Kiev",
+    awayTeam: "PAOK FC",
+    mozzHomeOdd: 2.60,
+    mozzDrawOdd: 3.20,
+    mozzAwayOdd: 2.75,
+    spPosition: 3,
+    mozzPosition: 2,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 4,
+    matchDate: "23.07.2026",
+    matchTime: "20:00",
+    country: "Romania",
+    league: "Liga I",
+    homeTeam: "Universitatea Cluj",
+    awayTeam: "Brann",
+    mozzHomeOdd: 2.52,
+    mozzDrawOdd: 3.17,
+    mozzAwayOdd: 2.73,
+    spPosition: 4,
+    mozzPosition: 6,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 5,
+    matchDate: "23.07.2026",
+    matchTime: "21:00",
+    country: "Croatia",
+    league: "HNL",
+    homeTeam: "NK Varazdin",
+    awayTeam: "Baumit Jablonec",
+    mozzHomeOdd: 2.43,
+    mozzDrawOdd: 3.40,
+    mozzAwayOdd: 2.65,
+    spPosition: 5,
+    mozzPosition: 9,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 6,
+    matchDate: "23.07.2026",
+    matchTime: "21:30",
+    country: "Israel",
+    league: "Ligat HaAl",
+    homeTeam: "Hapoel Tel Aviv",
+    awayTeam: "Ludogorets Razgrad",
+    mozzHomeOdd: 3.05,
+    mozzDrawOdd: 3.05,
+    mozzAwayOdd: 2.38,
+    spPosition: 6,
+    mozzPosition: 8,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 7,
+    matchDate: "23.07.2026",
+    matchTime: "22:00",
+    country: "Croatia",
+    league: "HNL",
+    homeTeam: "Hajduk Split",
+    awayTeam: "Pafos FC",
+    mozzHomeOdd: 2.44,
+    mozzDrawOdd: 3.20,
+    mozzAwayOdd: 2.95,
+    spPosition: 7,
+    mozzPosition: 11,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 8,
+    matchDate: "24.07.2026",
+    matchTime: "20:00",
+    country: "Denmark",
+    league: "Superliga",
+    homeTeam: "Aab Aalborg",
+    awayTeam: "Hillerod",
+    mozzHomeOdd: 2.21,
+    mozzDrawOdd: 3.45,
+    mozzAwayOdd: 2.65,
+    spPosition: 8,
+    mozzPosition: 10,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 9,
+    matchDate: "24.07.2026",
+    matchTime: "20:30",
+    country: "Switzerland",
+    league: "Challenge League",
+    homeTeam: "Rapperswil",
+    awayTeam: "FC Wil",
+    mozzHomeOdd: 2.65,
+    mozzDrawOdd: 3.40,
+    mozzAwayOdd: 2.25,
+    spPosition: 9,
+    mozzPosition: 13,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 10,
+    matchDate: "24.07.2026",
+    matchTime: "21:30",
+    country: "Romania",
+    league: "Liga I",
+    homeTeam: "Argesul Pitesti",
+    awayTeam: "Petrolul Ploiesti",
+    mozzHomeOdd: 2.30,
+    mozzDrawOdd: 2.95,
+    mozzAwayOdd: 2.95,
+    spPosition: 10,
+    mozzPosition: 12,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 11,
+    matchDate: "24.07.2026",
+    matchTime: "21:30",
+    country: "Poland",
+    league: "Ekstraklasa",
+    homeTeam: "Pogon Szczecin",
+    awayTeam: "Legia Warszawa",
+    mozzHomeOdd: 2.75,
+    mozzDrawOdd: 3.15,
+    mozzAwayOdd: 2.39,
+    spPosition: 11,
+    mozzPosition: 15,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 12,
+    matchDate: "24.07.2026",
+    matchTime: "21:45",
+    country: "Ireland",
+    league: "First Division",
+    homeTeam: "Cobh Ramblers",
+    awayTeam: "Bray Wanderers",
+    mozzHomeOdd: 2.50,
+    mozzDrawOdd: 3.30,
+    mozzAwayOdd: 2.41,
+    spPosition: 12,
+    mozzPosition: 14,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  },
+  {
+    id: 13,
+    matchDate: "24.07.2026",
+    matchTime: "21:45",
+    country: "Ireland",
+    league: "First Division",
+    homeTeam: "Treaty United",
+    awayTeam: "Athlone Town",
+    mozzHomeOdd: 2.75,
+    mozzDrawOdd: 3.10,
+    mozzAwayOdd: 2.35,
+    spPosition: 13,
+    mozzPosition: 16,
+    isRepeated: true,
+    repeatedInPools: ["daily"]
+  }
 ];
 
 // 17 matches for Mozzart Weekly Jackpot (Saturday & Sunday distribution)
@@ -1109,23 +1322,24 @@ const DEFAULT_SPORTPESA_WEEKLY_MATCHES: Match[] = [
 
 // Available events mock database for SportPesa to match against
 const SPORTPESA_MARKET_DATABASE = [
-  // Daily Matches
+  // Daily Matches (SportPesa 13-Match Jackpot Pool)
+  { name: "Hammarby vs Anderlecht", odds: [2.90, 3.30, 2.43] },
+  { name: "GAIS vs FC Nordsjaelland", odds: [2.90, 3.15, 2.38] },
+  { name: "Dynamo Kiev vs PAOK FC", odds: [2.60, 3.20, 2.75] },
+  { name: "Universitatea Cluj vs Brann", odds: [2.52, 3.17, 2.73] },
+  { name: "NK Varazdin vs Baumit Jablonec", odds: [2.43, 3.40, 2.65] },
+  { name: "Hapoel Tel Aviv vs Ludogorets Razgrad", odds: [3.05, 3.05, 2.38] },
+  { name: "Hajduk Split vs Pafos FC", odds: [2.44, 3.20, 2.95] },
+  { name: "Aab Aalborg vs Hillerod", odds: [2.21, 3.45, 2.65] },
+  { name: "Rapperswil vs FC Wil", odds: [2.65, 3.40, 2.25] },
+  { name: "Argesul Pitesti vs Petrolul Ploiesti", odds: [2.30, 2.95, 2.95] },
+  { name: "Pogon Szczecin vs Legia Warszawa", odds: [2.75, 3.15, 2.39] },
+  { name: "Cobh Ramblers vs Bray Wanderers", odds: [2.50, 3.30, 2.41] },
+  { name: "Treaty United vs Athlone Town", odds: [2.75, 3.10, 2.35] },
   { name: "Gor Mahia vs Bandari FC", odds: [1.90, 3.15, 3.95] },
   { name: "Simba vs Yanga SC", odds: [2.35, 2.95, 3.00] },
-  { name: "Bohemians D. vs Shelbourne FC", odds: [2.65, 3.05, 2.55] },
-  { name: "Cork City vs Derry City", odds: [3.30, 2.95, 2.15] },
-  { name: "KCB vs Tusker", odds: [2.50, 2.75, 2.85] },
-  { name: "RS Berkane vs Wydad AC", odds: [2.10, 3.05, 3.25] },
-  { name: "Raja Club Athletic vs AS FAR", odds: [2.05, 2.95, 3.50] },
-  { name: "Al Ahly Cairo vs Zamalek SC", odds: [1.98, 3.25, 3.45] },
-  { name: "Orlando Pirates FC vs Kaizer Chiefs FC", odds: [2.15, 2.90, 3.30] },
-  { name: "Waterford vs Galway Utd", odds: [2.45, 2.95, 2.85] },
-  { name: "Dundalk vs Shamrock Rovers", odds: [3.70, 3.15, 1.95] },
-  { name: "Sligo Rovers vs Drogheda", odds: [2.15, 3.10, 3.25] },
-  { name: "Al Ittihad vs Al Hilal SFC", odds: [2.95, 3.35, 2.15] },
-  { name: "Ulinzi Stars vs AFC Leopards", odds: [2.55, 2.80, 2.75] },
-  { name: "Waterhouse vs Mt Pleasant", odds: [2.75, 2.85, 2.55] },
   { name: "Seattle vs Portland", odds: [1.88, 3.35, 3.65] },
+
   // Weekly Jackpot Matches (SportPesa Counterparts)
   { name: "Chelsea vs Newcastle United FC", odds: [2.15, 3.45, 3.10] },
   { name: "Mainz 05 vs Werder Bremen FC", odds: [2.35, 3.15, 3.05] },
@@ -1422,7 +1636,7 @@ Return your mapping in a strict JSON format with the following keys:
 
           // If AI resolution was disabled, failed, or was not run, apply a robust local heuristic fallback
           if (!aiResolved) {
-            // Heuristic fallback for Tanzanian/Moroccan famous names
+            // Heuristic fallback for Tanzanian/Moroccan/USA/English/Austrian famous names
             let localFallbackEvent = null;
             if (m.homeTeam.includes("Young Africans") || m.awayTeam.includes("Young Africans")) {
               localFallbackEvent = SPORTPESA_MARKET_DATABASE.find(e => e.name.includes("Yanga"));
@@ -1430,6 +1644,12 @@ Return your mapping in a strict JSON format with the following keys:
               localFallbackEvent = SPORTPESA_MARKET_DATABASE.find(e => e.name.includes("Berkane"));
             } else if (m.homeTeam.includes("Raja")) {
               localFallbackEvent = SPORTPESA_MARKET_DATABASE.find(e => e.name.includes("Raja"));
+            } else if (m.homeTeam.includes("Seattle") || m.awayTeam.includes("Portland")) {
+              localFallbackEvent = SPORTPESA_MARKET_DATABASE.find(e => e.name.includes("Seattle"));
+            } else if (m.homeTeam.includes("Wolverhampton") || m.homeTeam.includes("Wolves")) {
+              localFallbackEvent = SPORTPESA_MARKET_DATABASE.find(e => e.name.includes("Wolves"));
+            } else if (m.homeTeam.includes("LASK") || m.awayTeam.includes("Wien") || m.awayTeam.includes("Vienna")) {
+              localFallbackEvent = SPORTPESA_MARKET_DATABASE.find(e => e.name.includes("LASK"));
             }
 
             if (localFallbackEvent) {
@@ -1455,6 +1675,22 @@ Return your mapping in a strict JSON format with the following keys:
                 message: `Match [${m.id}] "${m.homeTeam} vs ${m.awayTeam}" could not be auto-mapped! Manual entry required on dashboard.`,
               });
             }
+          }
+        }
+
+        // Automatically compute positional matching for Daily pool
+        if (appState.activePool === "daily" && m.spMatchedName) {
+          const spDailyMatch = DEFAULT_SPORTPESA_DAILY_MATCHES.find(sp => 
+            normalizeName(sp.homeTeam) === normalizeName(m.homeTeam) ||
+            getTokenOverlap(sp.homeTeam, m.homeTeam) > 0.6 ||
+            (m.spMatchedName && getTokenOverlap(sp.homeTeam, m.spMatchedName.split("vs")[0] || "") > 0.6)
+          );
+
+          if (spDailyMatch) {
+            m.mozzPosition = m.id;
+            m.spPosition = spDailyMatch.spPosition;
+            m.isRepeated = true;
+            m.repeatedInPools = ["sportpesa_daily"];
           }
         }
       }
@@ -1581,16 +1817,41 @@ app.post("/api/predict", (req, res) => {
       const activeType = appState.activePool;
       const currentMatches = appState.matches;
 
-      if (activeType === "mozz_weekly" || activeType === "sportpesa_weekly") {
+      if (activeType === "daily") {
+        for (const m of currentMatches) {
+          const corresponding = DEFAULT_SPORTPESA_DAILY_MATCHES.find((other: Match) => 
+            normalizeName(other.homeTeam) === normalizeName(m.homeTeam) || 
+            getTokenOverlap(other.homeTeam, m.homeTeam) > 0.6
+          );
+ 
+          if (corresponding) {
+            repeatedMatchesCount++;
+            m.isRepeated = true;
+            m.repeatedInPools = ["sportpesa_daily"];
+            
+            m.mozzPosition = m.id;
+            m.spPosition = corresponding.spPosition;
+ 
+            if (m.mozzPosition !== undefined && m.spPosition !== undefined) {
+              const drift = Math.abs(m.mozzPosition - m.spPosition);
+              totalDrift += drift;
+              if (drift > maxDrift) {
+                maxDrift = drift;
+                maxDriftFixture = `${m.homeTeam} vs ${m.awayTeam}`;
+              }
+            }
+          }
+        }
+      } else if (activeType === "mozz_weekly" || activeType === "sportpesa_weekly") {
         const otherPool = activeType === "mozz_weekly" ? appState.sportpesaWeeklyMatches : appState.mozzWeeklyMatches;
-
+ 
         for (const m of currentMatches) {
           // Find matching fixture in the other pool based on home team name overlap
           const corresponding = otherPool.find((other: Match) => 
             normalizeName(other.homeTeam) === normalizeName(m.homeTeam) || 
             getTokenOverlap(other.homeTeam, m.homeTeam) > 0.6
           );
-
+ 
           if (corresponding) {
             repeatedMatchesCount++;
             m.isRepeated = true;
@@ -1601,7 +1862,7 @@ app.post("/api/predict", (req, res) => {
             
             if (mozzPos !== undefined) m.mozzPosition = mozzPos;
             if (spPos !== undefined) m.spPosition = spPos;
-
+ 
             if (mozzPos !== undefined && spPos !== undefined) {
               const drift = Math.abs(mozzPos - spPos);
               totalDrift += drift;
@@ -1756,6 +2017,102 @@ app.post("/api/predict", (req, res) => {
           velocitySignal,
           reasons,
         };
+      }
+
+      // Pass 2: Positional Segment Convergence & Recursive LLN Balancer
+      const totalN = currentMatches.length;
+      let runningH = 0;
+      let runningD = 0;
+      let runningA = 0;
+
+      // Group into 4 segments (Quarters of the pool)
+      const segmentSize = Math.ceil(totalN / 4);
+
+      for (let i = 0; i < totalN; i++) {
+        const m = currentMatches[i];
+        const pred = m.predictions!;
+        const segmentIdx = Math.floor(i / segmentSize); // 0 to 3
+
+        // Historical global expected distribution (baseline priors)
+        const expH = 0.382;
+        const expD = 0.257;
+        const expA = 0.361;
+
+        // Apply Recursive Belief Updater (Law of Large Numbers Convergence)
+        // If the processed pool has deviated from the expected mean, we pull remaining matches back
+        let llnCorrectionH = 1.0;
+        let llnCorrectionD = 1.0;
+        let llnCorrectionA = 1.0;
+
+        if (i > 0) {
+          const ratioH = runningH / i;
+          const ratioD = runningD / i;
+          const ratioA = runningA / i;
+
+          // If Home is overrepresented, scale down remaining Home probabilities
+          if (ratioH > expH + 0.10) {
+            llnCorrectionH = Math.max(0.60, 1.0 - (ratioH - expH) * 2.0);
+          } else if (ratioH < expH - 0.10) {
+            llnCorrectionH = Math.min(1.40, 1.0 + (expH - ratioH) * 2.0);
+          }
+
+          if (ratioD > expD + 0.08) {
+            llnCorrectionD = Math.max(0.60, 1.0 - (ratioD - expD) * 2.2);
+          } else if (ratioD < expD - 0.08) {
+            llnCorrectionD = Math.min(1.40, 1.0 + (expD - ratioD) * 2.2);
+          }
+
+          if (ratioA > expA + 0.10) {
+            llnCorrectionA = Math.max(0.60, 1.0 - (ratioA - expA) * 2.0);
+          } else if (ratioA < expA - 0.10) {
+            llnCorrectionA = Math.min(1.40, 1.0 + (expA - ratioA) * 2.0);
+          }
+        }
+
+        // Apply Segment-based Geometric Sequence filtering (Central Limit Theorem)
+        // Segment boundaries: Q1 (1-4), Q2 (5-8), Q3 (9-12), Q4 (13+)
+        // Bookmakers often clump draws/traps. If a segment has successive draws, dampen the subsequent ones geometrically
+        let segmentDrawDamping = 1.0;
+        let segmentInMatchIdx = i % segmentSize;
+        if (segmentInMatchIdx > 0) {
+          // Count how many draws predicted so far in this segment
+          let drawsInSegment = 0;
+          for (let j = i - segmentInMatchIdx; j < i; j++) {
+            if (currentMatches[j].predictions!.bestPick === "D") {
+              drawsInSegment++;
+            }
+          }
+          if (drawsInSegment >= 2) {
+            // Apply geometric sequences damping: r^k where r=0.82
+            segmentDrawDamping = Math.pow(0.82, drawsInSegment);
+          }
+        }
+
+        // Adjust probabilities
+        let newProbH = pred.probH * llnCorrectionH;
+        let newProbD = pred.probD * llnCorrectionD * segmentDrawDamping;
+        let newProbA = pred.probA * llnCorrectionA;
+
+        // Re-normalize
+        const sumNew = newProbH + newProbD + newProbA;
+        pred.probH = Math.round((newProbH / sumNew) * 1000) / 1000;
+        pred.probD = Math.round((newProbD / sumNew) * 1000) / 1000;
+        pred.probA = Math.round((newProbA / sumNew) * 1000) / 1000;
+
+        // Recalculate best pick and update running counts
+        const bestPick = pred.probH > pred.probD && pred.probH > pred.probA ? "H" : (pred.probD > pred.probA ? "D" : "A");
+        pred.bestPick = bestPick;
+
+        if (bestPick === "H") runningH++;
+        else if (bestPick === "D") runningD++;
+        else runningA++;
+
+        // Add explanation log
+        if (llnCorrectionD !== 1.0 || segmentDrawDamping !== 1.0) {
+          pred.reasons.push(
+            `CLT/LLN Segment Core: Segment Q${segmentIdx+1} Draw variance dampener: x${segmentDrawDamping.toFixed(2)}. Pool outcome balance multiplier: [H:x${llnCorrectionH.toFixed(2)}, D:x${llnCorrectionD.toFixed(2)}, A:x${llnCorrectionA.toFixed(2)}] applied for Law of Large Numbers convergence.`
+          );
+        }
       }
 
       // 2. Run Pool Coupon Optimizer (simulates standard draw targets)
