@@ -6,13 +6,14 @@ import { ManualInputModal } from "./components/ManualInputModal.js";
 import { PredictionConsole } from "./components/PredictionConsole.js";
 import { CouponList } from "./components/CouponList.js";
 import { SystemConsoleLogs } from "./components/SystemConsoleLogs.js";
+import { PositionalNeuralDashboard } from "./components/PositionalNeuralDashboard.js";
 import { DashboardState, Match } from "./types.js";
 import { ShieldCheck, HelpCircle, Layers, Landmark } from "lucide-react";
 
 export default function App() {
   const [state, setState] = useState<DashboardState | null>(null);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
-  const [activeTab, setActiveTab] = useState<"fixtures" | "predictions">("fixtures");
+  const [activeTab, setActiveTab] = useState<"fixtures" | "predictions" | "neural">("fixtures");
 
   // Load state on mount
   useEffect(() => {
@@ -253,14 +254,25 @@ export default function App() {
             >
               2. Bayesian Log-Odds & Predictions
             </button>
+            <button
+              onClick={() => setActiveTab("neural")}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+                activeTab === "neural"
+                  ? "bg-slate-800 text-white font-semibold border-b border-purple-500"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              3. Positional Spell-State & MLP Decoder
+            </button>
           </div>
 
           {/* Active Tab rendering */}
-          {activeTab === "fixtures" ? (
+          {activeTab === "fixtures" && (
             <div className="flex flex-col gap-6 animate-fade-in">
               <MatchList matches={state.matches} onEditMatch={(m) => setEditingMatch(m)} activePool={state.activePool} />
             </div>
-          ) : (
+          )}
+          {activeTab === "predictions" && (
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in">
               {/* Detailed Predictions */}
               <div className="lg:col-span-3 flex flex-col gap-6">
@@ -270,6 +282,11 @@ export default function App() {
               <div className="lg:col-span-2 flex flex-col gap-6">
                 <CouponList coupons={state.optimizedCoupons} drawTargets={state.drawTarget} />
               </div>
+            </div>
+          )}
+          {activeTab === "neural" && (
+            <div className="flex flex-col gap-6 animate-fade-in">
+              <PositionalNeuralDashboard state={state} />
             </div>
           )}
 

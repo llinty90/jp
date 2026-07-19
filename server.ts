@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { Match, DashboardState, ScrapingLog, Coupon } from "./src/types.js";
+import { generateSyntheticHistory, computePositionalMetrics, computeNeuralPathActivations, solveTrapLines } from "./src/utils/positionalNeuralCore.js";
 
 // Setup environment and paths
 const _filename = typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== "undefined" ? __filename : "");
@@ -1438,6 +1439,7 @@ function loadState(): any {
       isPredicting: false,
       logs: initialLogs,
       optimizedCoupons: [],
+      historicalRounds: generateSyntheticHistory(),
     };
   } else {
     // Graceful migrations
@@ -1446,6 +1448,7 @@ function loadState(): any {
     if (!state.sportpesaDailyMatches) state.sportpesaDailyMatches = DEFAULT_SPORTPESA_DAILY_MATCHES.map(m => ({ ...m, poolType: "sportpesa_daily" as const }));
     if (!state.mozzWeeklyMatches) state.mozzWeeklyMatches = DEFAULT_MOZZ_WEEKLY_MATCHES;
     if (!state.sportpesaWeeklyMatches) state.sportpesaWeeklyMatches = DEFAULT_SPORTPESA_WEEKLY_MATCHES;
+    if (!state.historicalRounds) state.historicalRounds = generateSyntheticHistory();
     
     // Apply sanitization to make sure everything has O/U odds
     state.dailyMatches = sanitizeMatchList(state.dailyMatches);
@@ -1456,6 +1459,18 @@ function loadState(): any {
     if (!state.matches) state.matches = state.dailyMatches;
     state.matches = sanitizeMatchList(state.matches);
   }
+
+  // Bind metrics summary and paths dynamically
+  state.positionalMetricsSummary = computePositionalMetrics(state.historicalRounds);
+  state.neuralActivationPaths = computeNeuralPathActivations(state.historicalRounds);
+
+  // Apply adversarial trap solver across all lists
+  solveTrapLines(state.dailyMatches, state.positionalMetricsSummary);
+  solveTrapLines(state.sportpesaDailyMatches, state.positionalMetricsSummary);
+  solveTrapLines(state.mozzWeeklyMatches, state.positionalMetricsSummary);
+  solveTrapLines(state.sportpesaWeeklyMatches, state.positionalMetricsSummary);
+  solveTrapLines(state.matches, state.positionalMetricsSummary);
+
   return state;
 }
 
@@ -2061,12 +2076,33 @@ app.post("/api/predict", (req, res) => {
           reasons.push(`Sponsorship Conflict: Both clubs sponsored by ${m.homeSponsor} (boosts Draw probability)`);
         }
 
-        // Applied Tier 4: Inverse Bookie Trap Model
-        const isTrap = m.id === 3 || m.id === 5 || m.id === 13;
-        if (isTrap) {
+        // Applied Tier 4: Inverse Bookie Trap Model (Powered by dynamic Positional Spells)
+        let isTrap = m.id === 3 || m.id === 5 || m.id === 13;
+        const posMetric = appState.positionalMetricsSummary?.[m.id];
+        
+        if (m.trapAdvised) {
+          isTrap = true;
+          logOddsH -= 0.40;
+          logOddsA += 0.35;
+          reasons.push(`Positional Trap Solver: ${m.trapReason}`);
+        } else if (isTrap) {
           logOddsH -= 0.30;
           logOddsA += 0.25;
           reasons.push("Inverse Bookie Model: Identified trap line structure (odds too short for baseline favorability)");
+        }
+
+        // Apply Positional Spell statistics (standard deviation / mean-reversion impulses)
+        if (posMetric) {
+          // If Draw dry spell is stretched tight, boost Draw probability
+          if (posMetric.outcomes.D.deviationSigma > 1.5) {
+            logOddsD += posMetric.outcomes.D.deviationSigma * 0.18;
+            reasons.push(`Positional Spell Engine: Draw option at Slot ${m.id} has an active dry spell of ${posMetric.outcomes.D.currentDrySpell} rounds (Mean: ${posMetric.outcomes.D.mean}, Sigma: +${posMetric.outcomes.D.deviationSigma}). Mean-reverting impulse applied (+${Math.round(posMetric.outcomes.D.deviationSigma * 18)}% Draw weight).`);
+          }
+          // If Away win dry spell is stretched tight, boost Away win probability
+          if (posMetric.outcomes.A.deviationSigma > 1.6) {
+            logOddsA += posMetric.outcomes.A.deviationSigma * 0.15;
+            reasons.push(`Positional Spell Engine: Away option at Slot ${m.id} has an active dry spell of ${posMetric.outcomes.A.currentDrySpell} rounds (Mean: ${posMetric.outcomes.A.mean}, Sigma: +${posMetric.outcomes.A.deviationSigma}). Mean-reverting impulse applied (+${Math.round(posMetric.outcomes.A.deviationSigma * 15)}% Away weight).`);
+          }
         }
 
         // Applied Positional Bias & Cross-Pool Alignment exploitation:

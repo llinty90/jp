@@ -43,6 +43,64 @@ export interface Match {
   repeatedInPools?: string[];
   positionalBiasScore?: number; // Structural placement bias offset calculated by the engine
   expectedDistributionBias?: "H" | "D" | "A" | "NEUTRAL";
+  positionalMetrics?: PositionalOutcomeMetrics;
+  trapAdvised?: boolean;
+  trapReason?: string;
+}
+
+export interface SpellStats {
+  mean: number;
+  median: number;
+  stdev: number;
+  variance: number;
+  min: number;
+  max: number;
+  currentDrySpell: number;
+  deviationSigma: number; // how many standard deviations the current dry spell is away from the mean
+  frequencyPct: number;   // historical occurrence percentage
+}
+
+export interface PositionalOutcomeMetrics {
+  position: number;
+  outcomes: {
+    H: SpellStats;
+    D: SpellStats;
+    A: SpellStats;
+  };
+  overUnder: {
+    O: SpellStats;
+    U: SpellStats;
+  };
+  ggNg: {
+    GG: SpellStats;
+    NG: SpellStats;
+  };
+  neuralCoFiringActivations?: {
+    concurrentCorrelations: { targetOutcome: string; triggeringPosition: number; triggeringOutcome: string; weight: number }[];
+    sequentialMatchPct: number;
+    recommendedAdjustment: "H" | "D" | "A" | "NEUTRAL";
+  };
+}
+
+export interface HistoricalMatchResult {
+  id: number; // position (1 to 16)
+  outcome: "H" | "D" | "A";
+  overUnder: "O" | "U";
+  ggNg: "GG" | "NG";
+}
+
+export interface HistoricalRound {
+  roundNumber: number;
+  date: string;
+  results: HistoricalMatchResult[];
+}
+
+export interface NeuralPathActivation {
+  position: number;
+  outcome: string;
+  triggerSequence: string[]; // sequence of past 3 states leading to trigger
+  confidencePct: number;
+  activeSequenceMatch: boolean;
 }
 
 export interface PredictionResult {
@@ -89,6 +147,9 @@ export interface DashboardState {
   logs: ScrapingLog[];
   optimizedCoupons: Coupon[];
   activePool: "daily" | "sportpesa_daily" | "mozz_weekly" | "sportpesa_weekly";
+  historicalRounds?: HistoricalRound[];
+  positionalMetricsSummary?: Record<number, PositionalOutcomeMetrics>;
+  neuralActivationPaths?: NeuralPathActivation[];
   summaryMetrics?: {
     totalExpectedH: number;
     totalExpectedD: number;
