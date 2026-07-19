@@ -12,6 +12,9 @@ export interface Match {
   spHomeOdd?: number;
   spDrawOdd?: number;
   spAwayOdd?: number;
+  b365HomeOdd?: number;
+  b365DrawOdd?: number;
+  b365AwayOdd?: number;
   spMatchedName?: string;
   spMatchConfidence?: number; // 0 to 1
   spMatchMethod?: "fuzzy_overlap" | "gemini_resolved" | "manual" | "failed";
@@ -33,7 +36,7 @@ export interface Match {
   underOdds?: number;
   predictions?: PredictionResult;
   // Cross-Pool and Positional Bias modeling properties
-  poolType?: "daily" | "mozz_weekly" | "sportpesa_weekly";
+  poolType?: "daily" | "sportpesa_daily" | "mozz_weekly" | "sportpesa_weekly";
   mozzPosition?: number; // Slot index in Mozzart (e.g. 1 to 16/17)
   spPosition?: number;   // Slot index in SportPesa
   isRepeated?: boolean;  // Repeated across Daily vs Weekly or Mozzart vs SportPesa
@@ -85,7 +88,7 @@ export interface DashboardState {
   isPredicting: boolean;
   logs: ScrapingLog[];
   optimizedCoupons: Coupon[];
-  activePool: "daily" | "mozz_weekly" | "sportpesa_weekly";
+  activePool: "daily" | "sportpesa_daily" | "mozz_weekly" | "sportpesa_weekly";
   summaryMetrics?: {
     totalExpectedH: number;
     totalExpectedD: number;

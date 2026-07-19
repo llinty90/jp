@@ -110,7 +110,7 @@ export default function App() {
   };
 
   // Handle active pool switching
-  const handleSelectPool = async (poolType: "daily" | "mozz_weekly" | "sportpesa_weekly") => {
+  const handleSelectPool = async (poolType: "daily" | "sportpesa_daily" | "mozz_weekly" | "sportpesa_weekly") => {
     try {
       const res = await fetch("/api/select-pool", {
         method: "POST",
@@ -148,40 +148,52 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 self-start md:self-auto shrink-0">
+          <div className="flex flex-wrap md:flex-nowrap gap-2 self-start md:self-auto shrink-0">
             <button
               onClick={() => handleSelectPool("daily")}
-              className={`px-4 py-2.5 rounded-xl border transition-all text-left cursor-pointer flex flex-col ${
+              className={`px-3 py-2 rounded-xl border transition-all text-left cursor-pointer flex flex-col ${
                 state.activePool === "daily"
                   ? "bg-slate-800/80 border-blue-500/80 text-white shadow-md shadow-blue-500/10"
                   : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
               }`}
             >
-              <span className="text-xs font-bold font-display">1. Daily Pool</span>
+              <span className="text-xs font-bold font-display">1. Mozz Daily</span>
               <span className="text-[10px] text-slate-500 font-mono mt-0.5">16 Matches • Standard overround</span>
             </button>
 
             <button
+              onClick={() => handleSelectPool("sportpesa_daily")}
+              className={`px-3 py-2 rounded-xl border transition-all text-left cursor-pointer flex flex-col ${
+                state.activePool === "sportpesa_daily"
+                  ? "bg-slate-800/80 border-blue-500/80 text-white shadow-md shadow-blue-500/10"
+                  : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+              }`}
+            >
+              <span className="text-xs font-bold font-display">2. SportPesa Daily</span>
+              <span className="text-[10px] text-slate-500 font-mono mt-0.5">13 Matches • SportPesa pool focus</span>
+            </button>
+
+            <button
               onClick={() => handleSelectPool("mozz_weekly")}
-              className={`px-4 py-2.5 rounded-xl border transition-all text-left cursor-pointer flex flex-col ${
+              className={`px-3 py-2 rounded-xl border transition-all text-left cursor-pointer flex flex-col ${
                 state.activePool === "mozz_weekly"
                   ? "bg-slate-800/80 border-blue-500/80 text-white shadow-md shadow-blue-500/10"
                   : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
               }`}
             >
-              <span className="text-xs font-bold font-display">2. Mozzart Weekly</span>
+              <span className="text-xs font-bold font-display">3. Mozz Weekly</span>
               <span className="text-[10px] text-slate-500 font-mono mt-0.5">17 Matches • Weekend distribution</span>
             </button>
 
             <button
               onClick={() => handleSelectPool("sportpesa_weekly")}
-              className={`px-4 py-2.5 rounded-xl border transition-all text-left cursor-pointer flex flex-col ${
+              className={`px-3 py-2 rounded-xl border transition-all text-left cursor-pointer flex flex-col ${
                 state.activePool === "sportpesa_weekly"
                   ? "bg-slate-800/80 border-blue-500/80 text-white shadow-md shadow-blue-500/10"
                   : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
               }`}
             >
-              <span className="text-xs font-bold font-display">3. SportPesa Weekly</span>
+              <span className="text-xs font-bold font-display">4. SportPesa Weekly</span>
               <span className="text-[10px] text-slate-500 font-mono mt-0.5">17 Matches • Weekend distribution</span>
             </button>
           </div>

@@ -12,6 +12,9 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
   const [spHomeOdd, setSpHomeOdd] = useState<string>("");
   const [spDrawOdd, setSpDrawOdd] = useState<string>("");
   const [spAwayOdd, setSpAwayOdd] = useState<string>("");
+  const [b365HomeOdd, setB365HomeOdd] = useState<string>("");
+  const [b365DrawOdd, setB365DrawOdd] = useState<string>("");
+  const [b365AwayOdd, setB365AwayOdd] = useState<string>("");
   const [overOdds, setOverOdds] = useState<string>("");
   const [underOdds, setUnderOdds] = useState<string>("");
   const [referee, setReferee] = useState<string>("");
@@ -23,6 +26,9 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
       setSpHomeOdd(match.spHomeOdd?.toString() || "");
       setSpDrawOdd(match.spDrawOdd?.toString() || "");
       setSpAwayOdd(match.spAwayOdd?.toString() || "");
+      setB365HomeOdd(match.b365HomeOdd?.toString() || "");
+      setB365DrawOdd(match.b365DrawOdd?.toString() || "");
+      setB365AwayOdd(match.b365AwayOdd?.toString() || "");
       setOverOdds(match.overOdds?.toString() || "");
       setUnderOdds(match.underOdds?.toString() || "");
       setReferee(match.referee || "");
@@ -39,6 +45,9 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
       spHomeOdd: spHomeOdd ? Number(spHomeOdd) : undefined,
       spDrawOdd: spDrawOdd ? Number(spDrawOdd) : undefined,
       spAwayOdd: spAwayOdd ? Number(spAwayOdd) : undefined,
+      b365HomeOdd: b365HomeOdd ? Number(b365HomeOdd) : undefined,
+      b365DrawOdd: b365DrawOdd ? Number(b365DrawOdd) : undefined,
+      b365AwayOdd: b365AwayOdd ? Number(b365AwayOdd) : undefined,
       overOdds: overOdds ? Number(overOdds) : undefined,
       underOdds: underOdds ? Number(underOdds) : undefined,
       referee: referee || undefined,
@@ -119,6 +128,51 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
                   min="1.01"
                   value={spAwayOdd}
                   onChange={(e) => setSpAwayOdd(e.target.value)}
+                  placeholder={match.mozzAwayOdd.toFixed(2)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bet365 Odds block */}
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+              Bet365 Match Odds (1X2)
+            </span>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-mono">HOME (1)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.01"
+                  value={b365HomeOdd}
+                  onChange={(e) => setB365HomeOdd(e.target.value)}
+                  placeholder={match.mozzHomeOdd.toFixed(2)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-mono">DRAW (X)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.01"
+                  value={b365DrawOdd}
+                  onChange={(e) => setB365DrawOdd(e.target.value)}
+                  placeholder={match.mozzDrawOdd.toFixed(2)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-mono">AWAY (2)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.01"
+                  value={b365AwayOdd}
+                  onChange={(e) => setB365AwayOdd(e.target.value)}
                   placeholder={match.mozzAwayOdd.toFixed(2)}
                   className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
                 />

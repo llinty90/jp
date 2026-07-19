@@ -5,12 +5,14 @@ import { Match } from "../types";
 interface MatchListProps {
   matches: Match[];
   onEditMatch: (match: Match) => void;
-  activePool?: "daily" | "mozz_weekly" | "sportpesa_weekly";
+  activePool?: "daily" | "sportpesa_daily" | "mozz_weekly" | "sportpesa_weekly";
 }
 
 export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, activePool = "daily" }) => {
   const getPoolTitle = () => {
     switch (activePool) {
+      case "sportpesa_daily":
+        return "SportPesa Daily Jackpot (13 Matches)";
       case "mozz_weekly":
         return "Mozzart Weekend Weekly Jackpot (17 Matches)";
       case "sportpesa_weekly":
@@ -22,11 +24,13 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
 
   const getPoolDesc = () => {
     switch (activePool) {
+      case "sportpesa_daily":
+        return "13 Daily SportPesa jackpot matches utilized for prediction computations and daily syndicate tracking.";
       case "mozz_weekly":
       case "sportpesa_weekly":
         return "Weekend-distributed matches. Features advanced cross-bookie repeated fixture and positional drift analysis.";
       default:
-        return "Auto-scraped Mozzart fixtures aligned to SportPesa counterparts via Intelligent Mapping.";
+        return "Auto-scraped Mozzart fixtures aligned to SportPesa and Bet365 counterparts via Intelligent Mapping.";
     }
   };
 
@@ -52,6 +56,7 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
               <th className="py-4 px-4">Match Pairings</th>
               <th className="py-4 px-4 text-center w-40">Mozzartbet (1X2)</th>
               <th className="py-4 px-4 text-center w-44">SportPesa (1X2)</th>
+              <th className="py-4 px-4 text-center w-44">Bet365 (1X2)</th>
               <th className="py-4 px-4 text-center w-28">O/U 2.5 (Mozz)</th>
               <th className="py-4 px-4 text-center w-28">Referee Bias</th>
               <th className="py-4 px-6 text-center w-20">Actions</th>
@@ -183,6 +188,25 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
                         </span>
                         <span className="text-slate-500 text-[9px]">Click edit to input manually</span>
                       </div>
+                    )}
+                  </td>
+
+                  {/* Bet365 Odds */}
+                  <td className="py-4 px-4 text-center font-mono">
+                    {m.b365HomeOdd !== undefined ? (
+                      <div className="flex items-center justify-center gap-1.5 text-xs">
+                        <div className="bg-amber-950/30 border border-amber-900/40 rounded px-1.5 py-1 text-amber-400 font-bold w-10" title="Bet365 Home Odd">
+                          {m.b365HomeOdd.toFixed(2)}
+                        </div>
+                        <div className="bg-amber-950/30 border border-amber-900/40 rounded px-1.5 py-1 text-amber-400 font-bold w-10" title="Bet365 Draw Odd">
+                          {m.b365DrawOdd?.toFixed(2)}
+                        </div>
+                        <div className="bg-amber-950/30 border border-amber-900/40 rounded px-1.5 py-1 text-amber-400 font-bold w-10" title="Bet365 Away Odd">
+                          {m.b365AwayOdd?.toFixed(2)}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-slate-600 text-xs italic">—</span>
                     )}
                   </td>
 
