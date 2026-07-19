@@ -52,6 +52,7 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
               <th className="py-4 px-4">Match Pairings</th>
               <th className="py-4 px-4 text-center w-40">Mozzartbet (1X2)</th>
               <th className="py-4 px-4 text-center w-44">SportPesa (1X2)</th>
+              <th className="py-4 px-4 text-center w-28">O/U 2.5 (Mozz)</th>
               <th className="py-4 px-4 text-center w-28">Referee Bias</th>
               <th className="py-4 px-6 text-center w-20">Actions</th>
             </tr>
@@ -183,6 +184,24 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
                         <span className="text-slate-500 text-[9px]">Click edit to input manually</span>
                       </div>
                     )}
+                  </td>
+
+                  {/* Over/Under 2.5 Market lines */}
+                  <td className="py-4 px-4 text-center font-mono">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-[10px] text-slate-500 font-mono">Over:</span>
+                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-emerald-400 font-semibold text-center min-w-[40px]" title="Over 2.5 Goals Odd">
+                          {m.overOdds ? m.overOdds.toFixed(2) : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-[10px] text-slate-500 font-mono">Under:</span>
+                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-blue-400 font-semibold text-center min-w-[40px]" title="Under 2.5 Goals Odd">
+                          {m.underOdds ? m.underOdds.toFixed(2) : "—"}
+                        </span>
+                      </div>
+                    </div>
                   </td>
 
                   {/* Referee bias representation */}

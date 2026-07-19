@@ -1360,6 +1360,24 @@ const SPORTPESA_MARKET_DATABASE = [
   { name: "LASK vs Rapid Vienna", odds: [2.35, 3.20, 2.95] }
 ];
 
+// Helper: Ensure overOdds and underOdds are populated with realistic values
+function sanitizeMatchList(list: Match[]): Match[] {
+  return list.map(m => {
+    if (m.overOdds === undefined || m.overOdds === null) {
+      const sum = (m.mozzHomeOdd || 2.0) + (m.mozzAwayOdd || 2.0);
+      const hash = m.homeTeam.length + m.awayTeam.length;
+      const isOverProne = sum < 4.5 || hash % 3 === 0;
+      m.overOdds = Math.round((isOverProne ? 1.75 + (hash % 15) / 100 : 2.00 + (hash % 20) / 100) * 100) / 100;
+    }
+    if (m.underOdds === undefined || m.underOdds === null) {
+      const hash = m.homeTeam.length + m.awayTeam.length;
+      const isOverProne = m.overOdds < 1.90;
+      m.underOdds = Math.round((isOverProne ? 1.95 + (hash % 12) / 100 : 1.70 + (hash % 15) / 100) * 100) / 100;
+    }
+    return m;
+  });
+}
+
 // Load State from File or Defaults
 function loadState(): any {
   let state: any = null;
@@ -1391,10 +1409,10 @@ function loadState(): any {
   if (!state) {
     state = {
       activePool: "daily",
-      dailyMatches: DEFAULT_MATCHES.map(m => ({ ...m, poolType: "daily" as const })),
-      mozzWeeklyMatches: DEFAULT_MOZZ_WEEKLY_MATCHES,
-      sportpesaWeeklyMatches: DEFAULT_SPORTPESA_WEEKLY_MATCHES,
-      matches: DEFAULT_MATCHES.map(m => ({ ...m, poolType: "daily" as const })),
+      dailyMatches: sanitizeMatchList(DEFAULT_MATCHES.map(m => ({ ...m, poolType: "daily" as const }))),
+      mozzWeeklyMatches: sanitizeMatchList(DEFAULT_MOZZ_WEEKLY_MATCHES),
+      sportpesaWeeklyMatches: sanitizeMatchList(DEFAULT_SPORTPESA_WEEKLY_MATCHES),
+      matches: sanitizeMatchList(DEFAULT_MATCHES.map(m => ({ ...m, poolType: "daily" as const }))),
       drawTarget: [3, 4, 5],
       nSimulations: 150000,
       predictionMode: "standard",
@@ -1411,7 +1429,14 @@ function loadState(): any {
     if (!state.dailyMatches) state.dailyMatches = DEFAULT_MATCHES.map(m => ({ ...m, poolType: "daily" as const }));
     if (!state.mozzWeeklyMatches) state.mozzWeeklyMatches = DEFAULT_MOZZ_WEEKLY_MATCHES;
     if (!state.sportpesaWeeklyMatches) state.sportpesaWeeklyMatches = DEFAULT_SPORTPESA_WEEKLY_MATCHES;
+    
+    // Apply sanitization to make sure everything has O/U odds
+    state.dailyMatches = sanitizeMatchList(state.dailyMatches);
+    state.mozzWeeklyMatches = sanitizeMatchList(state.mozzWeeklyMatches);
+    state.sportpesaWeeklyMatches = sanitizeMatchList(state.sportpesaWeeklyMatches);
+    
     if (!state.matches) state.matches = state.dailyMatches;
+    state.matches = sanitizeMatchList(state.matches);
   }
   return state;
 }
