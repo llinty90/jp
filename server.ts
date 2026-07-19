@@ -7,8 +7,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Match, DashboardState, ScrapingLog, Coupon } from "./src/types.js";
 
 // Setup environment and paths
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const _filename = typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== "undefined" ? __filename : "");
+const _dirname = typeof import.meta !== "undefined" && import.meta.url ? path.dirname(_filename) : (typeof __dirname !== "undefined" ? __dirname : "");
 const PORT = 3000;
 const DATA_FILE = path.join(process.cwd(), "data", "jackpot_state.json");
 
