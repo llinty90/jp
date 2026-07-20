@@ -1684,7 +1684,7 @@ ${rawText}
 `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
       });
 
@@ -1877,7 +1877,7 @@ Return your mapping in a strict JSON format with the following keys:
 - reasoning: (A brief 1-sentence reason why you mapped them)`;
 
               const callGeminiPromise = ai.models.generateContent({
-                model: "gemini-2.0-flash",
+                model: "gemini-3.5-flash",
                 contents: prompt,
                 config: {
                   responseMimeType: "application/json",
@@ -2300,7 +2300,7 @@ app.post("/api/scrape-results", async (req, res) => {
         id: `log_res_gemini_${Date.now()}`,
         timestamp: new Date().toLocaleTimeString(),
         level: "info",
-        message: `Analyzing pasted raw text/HTML results with Gemini AI engine (Model: gemini-2.0-flash)...`,
+        message: `Analyzing pasted raw text/HTML results with Gemini AI engine (Model: gemini-3.5-flash)...`,
       });
 
       const prompt = `You are an expert sports data analyst and scraping intelligence.
@@ -2339,7 +2339,7 @@ ${rawText}
 `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
       });
 
@@ -2660,7 +2660,7 @@ You must reply with a valid JSON block containing the calibrated settings matchi
 
     // Call Gemini
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
