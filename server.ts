@@ -1684,7 +1684,7 @@ ${rawText}
 `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: prompt,
       });
 
@@ -1877,7 +1877,7 @@ Return your mapping in a strict JSON format with the following keys:
 - reasoning: (A brief 1-sentence reason why you mapped them)`;
 
               const callGeminiPromise = ai.models.generateContent({
-                model: "gemini-3.5-flash",
+                model: "gemini-2.0-flash",
                 contents: prompt,
                 config: {
                   responseMimeType: "application/json",
@@ -2300,7 +2300,7 @@ app.post("/api/scrape-results", async (req, res) => {
         id: `log_res_gemini_${Date.now()}`,
         timestamp: new Date().toLocaleTimeString(),
         level: "info",
-        message: `Analyzing pasted raw text/HTML results with Gemini AI engine (Model: gemini-3.5-flash)...`,
+        message: `Analyzing pasted raw text/HTML results with Gemini AI engine (Model: gemini-2.0-flash)...`,
       });
 
       const prompt = `You are an expert sports data analyst and scraping intelligence.
@@ -2339,7 +2339,7 @@ ${rawText}
 `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: prompt,
       });
 
@@ -2660,7 +2660,7 @@ You must reply with a valid JSON block containing the calibrated settings matchi
 
     // Call Gemini
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2983,8 +2983,87 @@ app.post("/api/predict", (req, res) => {
         const kellyD = calcKelly(probD, dOdd);
         const kellyA = calcKelly(probA, aOdd);
 
-        // Simulated late sharp money velocity signal
-        const velocitySignal = m.id % 4 === 0 ? "SHARP_HOME_DRIFT" : "STABLE";
+        // ----------------------------------------------------
+        // Advanced Market Consensus & Divergence Kinetics
+        // ----------------------------------------------------
+        // Overround-removed implied probabilities for Mozzart
+        const mRawOverround = 1 / m.mozzHomeOdd + 1 / m.mozzDrawOdd + 1 / m.mozzAwayOdd;
+        const mImpliedH = (1 / m.mozzHomeOdd) / mRawOverround;
+        const mImpliedD = (1 / m.mozzDrawOdd) / mRawOverround;
+        const mImpliedA = (1 / m.mozzAwayOdd) / mRawOverround;
+
+        // Collect all available bookmaker probabilities to compute the market consensus
+        const bookieProbs: { h: number; d: number; a: number }[] = [{ h: mImpliedH, d: mImpliedD, a: mImpliedA }];
+
+        if (m.spHomeOdd && m.spDrawOdd && m.spAwayOdd) {
+          const spOverround = 1 / m.spHomeOdd + 1 / m.spDrawOdd + 1 / m.spAwayOdd;
+          bookieProbs.push({
+            h: (1 / m.spHomeOdd) / spOverround,
+            d: (1 / m.spDrawOdd) / spOverround,
+            a: (1 / m.spAwayOdd) / spOverround
+          });
+        }
+        if (m.b365HomeOdd && m.b365DrawOdd && m.b365AwayOdd) {
+          const b365Overround = 1 / m.b365HomeOdd + 1 / m.b365DrawOdd + 1 / m.b365AwayOdd;
+          bookieProbs.push({
+            h: (1 / m.b365HomeOdd) / b365Overround,
+            d: (1 / m.b365DrawOdd) / b365Overround,
+            a: (1 / m.b365AwayOdd) / b365Overround
+          });
+        }
+
+        // Average of implied probabilities = consensus
+        const consensusH = bookieProbs.reduce((sum, p) => sum + p.h, 0) / bookieProbs.length;
+        const consensusD = bookieProbs.reduce((sum, p) => sum + p.d, 0) / bookieProbs.length;
+        const consensusA = bookieProbs.reduce((sum, p) => sum + p.a, 0) / bookieProbs.length;
+
+        // Discrepancy (leak-proof drift/velocity signal)
+        const diffH = mImpliedH - consensusH;
+        const diffD = mImpliedD - consensusD;
+        const diffA = mImpliedA - consensusA;
+
+        let velocitySignal: "STABLE" | "SHARP_HOME_DRIFT" | "SHARP_AWAY_DRIFT" | "DRAW_ANOMALY" = "STABLE";
+        if (diffH > 0.05) {
+          velocitySignal = "SHARP_HOME_DRIFT";
+          reasons.push(`Consensus Kinetics: Mozzart is over-weighting Home win by +${(diffH * 100).toFixed(1)}% relative to consensus. Potential value on Draw/Away.`);
+        } else if (diffA > 0.05) {
+          velocitySignal = "SHARP_AWAY_DRIFT";
+          reasons.push(`Consensus Kinetics: Mozzart is over-weighting Away win by +${(diffA * 100).toFixed(1)}% relative to consensus. Potential value on Home/Draw.`);
+        } else if (diffD < -0.05) {
+          velocitySignal = "DRAW_ANOMALY";
+          reasons.push(`Consensus Kinetics: Mozzart is severely under-pricing the Draw option by ${(diffD * 100).toFixed(1)}% relative to consensus, signaling bookmaker trap defense.`);
+        }
+
+        // ----------------------------------------------------
+        // Goal-Goal (GG) and Poisson Expected Goals Core
+        // ----------------------------------------------------
+        let ouImpliedGoals = 2.50; // default baseline
+        let calculatedGgProb = 0.52;
+
+        if (m.overOdds && m.underOdds) {
+          const ouOverround = 1 / m.overOdds + 1 / m.underOdds;
+          const pOver = (1 / m.overOdds) / ouOverround;
+
+          // Solve Poisson inverse lambda using Newton-Raphson: 1 - e^-L * (1 + L + L^2/2) = pOver
+          let lambda = 2.50; // initial estimate
+          for (let iter = 0; iter < 10; iter++) {
+            const expTerm = Math.exp(-lambda);
+            const func = expTerm * (1 + lambda + (lambda * lambda) / 2) - (1 - pOver);
+            const derivative = -expTerm * ((lambda * lambda) / 2);
+            if (Math.abs(derivative) > 1e-9) {
+              const nextLambda = lambda - func / derivative;
+              lambda = Math.max(0.1, Math.min(nextLambda, 7.5));
+            }
+          }
+          ouImpliedGoals = lambda;
+
+          // Calculate GG (BTTS Yes) probability using Poisson proxy
+          const halfLambda = lambda / 2;
+          const pScore = 1 - Math.exp(-halfLambda); // P(team scores >= 1)
+          calculatedGgProb = pScore * pScore; // P(both teams score)
+
+          reasons.push(`Goal Core: Over/Under 2.5 line implies an expected goal mean of ${lambda.toFixed(2)} goals (Poisson proxy GG probability: ${(calculatedGgProb * 100).toFixed(1)}%)`);
+        }
 
         m.predictions = {
           probH: Math.round(probH * 1000) / 1000,
