@@ -1859,7 +1859,13 @@ ${rawText}
         } else {
           // low overlap -> Gemini
           let aiResolved = false;
-          if (apiKey) {
+          const isRealApiKey = apiKey && 
+                               apiKey.trim() !== "" && 
+                               apiKey !== "MY_GEMINI_API_KEY" && 
+                               apiKey !== "YOUR_API_KEY" && 
+                               !apiKey.toLowerCase().includes("placeholder");
+
+          if (isRealApiKey) {
             try {
               const spCandidates = SPORTPESA_MARKET_DATABASE.map(e => e.name).join(", ");
               const prompt = `You are an expert sports data matching intelligence. 
@@ -1870,7 +1876,7 @@ Return your mapping in a strict JSON format with the following keys:
 - confidence: (A confidence score between 0.0 and 1.0)
 - reasoning: (A brief 1-sentence reason why you mapped them)`;
 
-              const response = await ai.models.generateContent({
+              const callGeminiPromise = ai.models.generateContent({
                 model: "gemini-3.5-flash",
                 contents: prompt,
                 config: {
@@ -1887,7 +1893,13 @@ Return your mapping in a strict JSON format with the following keys:
                 },
               });
 
-              if (response.text) {
+              const timeoutPromise = new Promise<null>((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout")), 5000)
+              );
+
+              const response = await Promise.race([callGeminiPromise, timeoutPromise]);
+
+              if (response && response.text) {
                 const result = JSON.parse(response.text.trim());
                 if (result.matchedName) {
                   const spEvent = SPORTPESA_MARKET_DATABASE.find(e => e.name === result.matchedName);
@@ -1914,8 +1926,14 @@ Return your mapping in a strict JSON format with the following keys:
                   }
                 }
               }
-            } catch (aiErr) {
-              console.error("Gemini Resolver error:", aiErr);
+            } catch (aiErr: any) {
+              console.error(`Gemini Resolver error for Match [${m.id}]:`, aiErr.message || aiErr);
+              appState.logs.unshift({
+                id: `log_sc_ai_timeout_${m.id}_${Date.now()}`,
+                timestamp: new Date().toLocaleTimeString(),
+                level: "info",
+                message: `Gemini resolver timed out or failed for Match [${m.id}]: ${aiErr.message || aiErr}. Falling back to local nickname dictionary...`,
+              });
             }
           }
 
