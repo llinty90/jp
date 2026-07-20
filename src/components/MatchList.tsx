@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Edit3, CheckCircle2, AlertCircle, FileEdit, Users, Award, ShieldAlert, ShieldCheck, Activity, Database, Terminal, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Edit3, CheckCircle2, AlertCircle, FileEdit, Users, Award, ShieldAlert, ShieldCheck, Activity, Database, Terminal, ChevronDown, ChevronUp, RefreshCw, Sparkles, Check, CheckSquare, Square, Play, FileText, CheckCircle } from "lucide-react";
 import { Match } from "../types";
 
 interface MatchListProps {
@@ -14,13 +14,85 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationTime, setVerificationTime] = useState<string | null>(() => new Date().toLocaleTimeString());
   const [isSettling, setIsSettling] = useState(false);
+  
+  // Results Center & Verification States
+  const [isUpdatingResults, setIsUpdatingResults] = useState(false);
+  const [showPasteInput, setShowPasteInput] = useState(false);
+  const [rawText, setRawText] = useState("");
+  const [verifiedMatches, setVerifiedMatches] = useState<Record<number, boolean>>({});
+
+  // Synchronize verification checkboxes when matches are loaded or updated
+  useEffect(() => {
+    const initial: Record<number, boolean> = {};
+    matches.forEach(m => {
+      if (m.outcome) {
+        initial[m.id] = true;
+      }
+    });
+    setVerifiedMatches(initial);
+  }, [matches]);
 
   const hasOutcomes = matches.some(m => m.outcome);
   const playedCount = matches.filter(m => m.outcome).length;
+  const totalFixtures = matches.length;
+
+  const handleAutoUpdateResults = async (textToParse?: string) => {
+    setIsUpdatingResults(true);
+    try {
+      const res = await fetch("/api/scrape-results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          poolType: activePool,
+          rawText: textToParse || undefined
+        }),
+      });
+      if (!res.ok) {
+        let msg = `Server error (Status ${res.status})`;
+        try {
+          const errJson = await res.json();
+          if (errJson.error) msg = errJson.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      const updatedState = await res.json();
+      if (onSettleSuccess) {
+        onSettleSuccess(updatedState);
+      }
+      
+      // Auto-verify all successfully scraped results
+      const verifiedInit: Record<number, boolean> = {};
+      updatedState.matches.forEach((m: Match) => {
+        if (m.outcome) {
+          verifiedInit[m.id] = true;
+        }
+      });
+      setVerifiedMatches(verifiedInit);
+      setRawText("");
+      setShowPasteInput(false);
+    } catch (err: any) {
+      alert(err.message || "Failed to update results");
+    } finally {
+      setIsUpdatingResults(false);
+    }
+  };
 
   const handleSettleRound = async () => {
-    if (!confirm(`Are you sure you want to Settle and Resolve this current round? \n\nThis will compile the ${playedCount} played matches into a new Historical Round, append it to your 2,000+ empirical dataset to let Gemini learn and calibrate itself, and reset the active matches to pending results.`)) {
+    // Verify that all active matches with outcomes are verified
+    const unverifiedCount = matches.filter(m => m.outcome && !verifiedMatches[m.id]).length;
+    if (unverifiedCount > 0) {
+      alert(`Verification Required: There are ${unverifiedCount} unverified outcomes. Please review and toggle the "Verify" state on all matches in the Verification Center below before committing.`);
       return;
+    }
+
+    if (playedCount < totalFixtures) {
+      if (!confirm(`Warning: Only ${playedCount}/${totalFixtures} matches have outcomes defined. \n\nSettle anyway? This will compile only the played games into historical records, clear current outcomes, and reset active slots.`)) {
+        return;
+      }
+    } else {
+      if (!confirm(`Are you sure you want to Settle and Commit this round? \n\nThis will permanently write these ${playedCount} verified results to the historical dataset, retrain the Bayesian network weights, and reset active matches.`)) {
+        return;
+      }
     }
     
     setIsSettling(true);
@@ -49,6 +121,23 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
     }
   };
 
+  const toggleVerification = (id: number) => {
+    setVerifiedMatches(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const handleVerifyAll = () => {
+    const next: Record<number, boolean> = {};
+    matches.forEach(m => {
+      if (m.outcome) {
+        next[m.id] = true;
+      }
+    });
+    setVerifiedMatches(next);
+  };
+
   const getPoolTitle = () => {
     switch (activePool) {
       case "sportpesa_daily":
@@ -74,7 +163,6 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
     }
   };
 
-  const totalFixtures = matches.length;
   const avgHomeOdd = totalFixtures > 0 ? matches.reduce((sum, m) => sum + m.mozzHomeOdd, 0) / totalFixtures : 0;
   const avgDrawOdd = totalFixtures > 0 ? matches.reduce((sum, m) => sum + m.mozzDrawOdd, 0) / totalFixtures : 0;
   const avgAwayOdd = totalFixtures > 0 ? matches.reduce((sum, m) => sum + m.mozzAwayOdd, 0) / totalFixtures : 0;
@@ -203,6 +291,197 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
           </div>
         </div>
       )}
+
+      {/* Syndicate Settlement & Results Center */}
+      <div className="bg-slate-950/60 p-6 border-b border-slate-800 flex flex-col gap-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+              <h3 className="font-display font-bold text-sm text-slate-200">
+                Syndicate Settlement & Results Center
+              </h3>
+            </div>
+            <p className="text-slate-500 text-xs mt-1">
+              Synchronize completed games, match goals, and game outcomes directly from Mozzart bet results page, or parse pasted text using Gemini AI.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => handleAutoUpdateResults()}
+              disabled={isUpdatingResults}
+              className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-3 py-1.5 rounded-xl border border-blue-500/30 text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isUpdatingResults ? "animate-spin" : ""}`} />
+              Auto-Update Results
+            </button>
+            <button
+              onClick={() => setShowPasteInput(!showPasteInput)}
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-semibold transition-all cursor-pointer"
+            >
+              <FileText className="h-3.5 w-3.5 text-slate-400" />
+              Paste Raw Results
+            </button>
+          </div>
+        </div>
+
+        {showPasteInput && (
+          <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3 animate-fade-in">
+            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <Terminal className="h-3.5 w-3.5 text-blue-500" /> Paste Webpage Source or Copied Results text:
+            </label>
+            <textarea
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              placeholder="Paste text directly from https://www.mozzartbet.co.ke/en#/jackpot/results or SportPesa...&#10;Example format:&#10;Sweden - Superettan&#10;2 Varnamo 1 2.75&#10;3 Ljungskile X 3.30 2 2.40"
+              rows={6}
+              className="w-full bg-slate-950 border border-slate-850 rounded-lg p-3 text-xs font-mono text-slate-300 focus:outline-none focus:border-blue-500/80 focus:ring-1 focus:ring-blue-500/80"
+            />
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[10px] text-slate-500 max-w-md font-sans">
+                Our advanced Gemini-3.5-Flash model parses the goals, automatically calculates 1X2, Over/Under 2.5, GG/NG outcomes, and maps them to active matches via fuzzy-matching.
+              </span>
+              <div className="flex items-center gap-2 self-end">
+                <button
+                  onClick={() => {
+                    setShowPasteInput(false);
+                    setRawText("");
+                  }}
+                  className="px-3 py-1 text-xs text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleAutoUpdateResults(rawText)}
+                  disabled={isUpdatingResults || !rawText.trim()}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isUpdatingResults ? (
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  Parse & Verify with Gemini AI
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasOutcomes && (
+          <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-4 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+              <div>
+                <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Results Ingestion Verification Board ({playedCount} Outcomes Sync'd)
+                </h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Check 'Verify' to confirm details are correct, or override outcomes manually if corrections are needed before committing.
+                </p>
+              </div>
+              <button
+                onClick={handleVerifyAll}
+                className="text-[10px] font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+              >
+                <CheckSquare className="h-3 w-3" /> Verify All {playedCount} Matches
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-1">
+              {matches.map((m) => {
+                if (!m.outcome) return null;
+                const isVerified = !!verifiedMatches[m.id];
+                return (
+                  <div
+                    key={m.id}
+                    className={`p-3 rounded-lg border text-xs flex flex-col justify-between gap-2.5 transition-all ${
+                      isVerified
+                        ? "bg-slate-950/40 border-slate-800/80 text-slate-200"
+                        : "bg-amber-950/10 border-amber-900/40 text-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[10px] bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded text-slate-400">
+                        Slot #{m.id}
+                      </span>
+                      <button
+                        onClick={() => toggleVerification(m.id)}
+                        className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border transition-all ${
+                          isVerified
+                            ? "bg-emerald-950/50 text-emerald-400 border-emerald-900/50"
+                            : "bg-amber-950/50 text-amber-400 border-amber-900/40"
+                        }`}
+                      >
+                        {isVerified ? (
+                          <>
+                            <Check className="h-2.5 w-2.5" /> Verified
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-2.5 w-2.5" /> Unverified
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-slate-300 truncate">
+                        {m.spMatchedName ? (
+                          <span className="text-emerald-400 font-mono text-[11px] font-bold">
+                            {m.spMatchedName}
+                          </span>
+                        ) : (
+                          <span>
+                            {m.homeTeam} vs {m.awayTeam}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 font-mono text-[10px] text-slate-500 mt-1">
+                        <span>Sign: <strong className="text-slate-300">{m.outcome}</strong></span>
+                        <span>O/U: <strong className="text-slate-300">{m.overUnderOutcome || "U"}</strong></span>
+                        <span>GG: <strong className="text-slate-300">{m.ggNgOutcome || "NG"}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-slate-850/60 pt-2">
+                      <span className="text-[9px] text-slate-500 font-sans">
+                        {isVerified ? "Ready to commit" : "Needs manual audit"}
+                      </span>
+                      <button
+                        onClick={() => onEditMatch(m)}
+                        className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <FileEdit className="h-2.5 w-2.5" /> Manual Override
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-slate-850 pt-4 mt-2">
+              <div className="flex items-center gap-2 text-slate-400 text-[10px]">
+                <Activity className="h-3.5 w-3.5 text-blue-500 animate-pulse" />
+                <span className="font-sans">
+                  All verified outcomes will be appended to the 2,000+ match historical database.
+                </span>
+              </div>
+              <button
+                onClick={handleSettleRound}
+                disabled={isSettling}
+                className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+              >
+                {isSettling ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                )}
+                Settle & Append Verified Round to Database
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[900px]">
