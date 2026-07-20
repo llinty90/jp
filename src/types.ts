@@ -35,6 +35,9 @@ export interface Match {
   overOdds?: number;
   underOdds?: number;
   predictions?: PredictionResult;
+  outcome?: "H" | "D" | "A";
+  overUnderOutcome?: "O" | "U";
+  ggNgOutcome?: "GG" | "NG";
   // Cross-Pool and Positional Bias modeling properties
   poolType?: "daily" | "sportpesa_daily" | "mozz_weekly" | "sportpesa_weekly";
   mozzPosition?: number; // Slot index in Mozzart (e.g. 1 to 16/17)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, AlertTriangle, ShieldCheck, HelpCircle } from "lucide-react";
+import { X, Save, AlertTriangle, ShieldCheck, HelpCircle, CheckCircle2 } from "lucide-react";
 import { Match } from "../types";
 
 interface ManualInputModalProps {
@@ -20,6 +20,9 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
   const [referee, setReferee] = useState<string>("");
   const [refereeHomeBias, setRefereeHomeBias] = useState<string>("");
   const [refereeDrawRate, setRefereeDrawRate] = useState<string>("");
+  const [outcome, setOutcome] = useState<string>("");
+  const [overUnderOutcome, setOverUnderOutcome] = useState<string>("");
+  const [ggNgOutcome, setGgNgOutcome] = useState<string>("");
 
   useEffect(() => {
     if (match) {
@@ -34,6 +37,9 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
       setReferee(match.referee || "");
       setRefereeHomeBias(match.refereeHomeBias?.toString() || "0");
       setRefereeDrawRate(match.refereeDrawRate?.toString() || "0.25");
+      setOutcome(match.outcome || "");
+      setOverUnderOutcome(match.overUnderOutcome || "");
+      setGgNgOutcome(match.ggNgOutcome || "");
     }
   }, [match]);
 
@@ -53,6 +59,9 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
       referee: referee || undefined,
       refereeHomeBias: refereeHomeBias ? Number(refereeHomeBias) : undefined,
       refereeDrawRate: refereeDrawRate ? Number(refereeDrawRate) : undefined,
+      outcome: outcome ? (outcome as "H" | "D" | "A") : undefined,
+      overUnderOutcome: overUnderOutcome ? (overUnderOutcome as "O" | "U") : undefined,
+      ggNgOutcome: ggNgOutcome ? (ggNgOutcome as "GG" | "NG") : undefined,
     });
   };
 
@@ -207,6 +216,56 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
                   placeholder="1.75"
                   className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Played/Actual Outcomes block */}
+          <div className="flex flex-col gap-2 p-3.5 bg-purple-950/20 border border-purple-900/40 rounded-xl">
+            <span className="text-xs font-bold text-purple-300 tracking-wider uppercase flex items-center gap-1.5 font-mono">
+              <CheckCircle2 className="h-4 w-4 text-purple-400" />
+              Settle Actual Played Result
+            </span>
+            <p className="text-[10px] text-slate-400 leading-normal">
+              Enter the actual played outcome to feed back into the AI calibration core.
+            </p>
+            <div className="grid grid-cols-3 gap-3 mt-1">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1 font-mono">1X2 OUTCOME</label>
+                <select
+                  value={outcome}
+                  onChange={(e) => setOutcome(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="">— Pending —</option>
+                  <option value="H">Home (H)</option>
+                  <option value="D">Draw (D)</option>
+                  <option value="A">Away (A)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1 font-mono">O/U 2.5 OUTCOME</label>
+                <select
+                  value={overUnderOutcome}
+                  onChange={(e) => setOverUnderOutcome(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="">— Pending —</option>
+                  <option value="O">Over 2.5 (O)</option>
+                  <option value="U">Under 2.5 (U)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1 font-mono">GG/NG OUTCOME</label>
+                <select
+                  value={ggNgOutcome}
+                  onChange={(e) => setGgNgOutcome(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="">— Pending —</option>
+                  <option value="GG">Goal-Goal (GG)</option>
+                  <option value="NG">No Goal (NG)</option>
+                </select>
               </div>
             </div>
           </div>

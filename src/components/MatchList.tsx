@@ -6,12 +6,48 @@ interface MatchListProps {
   matches: Match[];
   onEditMatch: (match: Match) => void;
   activePool?: "daily" | "sportpesa_daily" | "mozz_weekly" | "sportpesa_weekly";
+  onSettleSuccess?: (data: any) => void;
 }
 
-export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, activePool = "daily" }) => {
+export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, activePool = "daily", onSettleSuccess }) => {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationTime, setVerificationTime] = useState<string | null>(() => new Date().toLocaleTimeString());
+  const [isSettling, setIsSettling] = useState(false);
+
+  const hasOutcomes = matches.some(m => m.outcome);
+  const playedCount = matches.filter(m => m.outcome).length;
+
+  const handleSettleRound = async () => {
+    if (!confirm(`Are you sure you want to Settle and Resolve this current round? \n\nThis will compile the ${playedCount} played matches into a new Historical Round, append it to your 2,000+ empirical dataset to let Gemini learn and calibrate itself, and reset the active matches to pending results.`)) {
+      return;
+    }
+    
+    setIsSettling(true);
+    try {
+      const res = await fetch("/api/resolve-round", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ poolType: activePool }),
+      });
+      if (!res.ok) {
+        let msg = `Server error (Status ${res.status})`;
+        try {
+          const errJson = await res.json();
+          if (errJson.error) msg = errJson.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      const updatedState = await res.json();
+      if (onSettleSuccess) {
+        onSettleSuccess(updatedState);
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to settle round");
+    } finally {
+      setIsSettling(false);
+    }
+  };
 
   const getPoolTitle = () => {
     switch (activePool) {
@@ -69,16 +105,32 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
             {getPoolDesc()}
           </p>
         </div>
-        {matches.length > 0 && (
-          <button
-            onClick={() => setShowDiagnostics(!showDiagnostics)}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white px-3 py-1.5 rounded-xl border border-slate-850 text-xs font-mono font-semibold transition-all cursor-pointer self-start sm:self-auto"
-          >
-            <Database className="h-3.5 w-3.5 text-blue-400" />
-            {showDiagnostics ? "Hide Diagnostics" : "Ingestion Integrity Panel"}
-            {showDiagnostics ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {hasOutcomes && (
+            <button
+              onClick={handleSettleRound}
+              disabled={isSettling}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+            >
+              {isSettling ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              Settle Round ({playedCount}/{totalFixtures} Played)
+            </button>
+          )}
+          {matches.length > 0 && (
+            <button
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white px-3 py-1.5 rounded-xl border border-slate-850 text-xs font-mono font-semibold transition-all cursor-pointer self-start sm:self-auto"
+            >
+              <Database className="h-3.5 w-3.5 text-blue-400" />
+              {showDiagnostics ? "Hide Diagnostics" : "Ingestion Integrity Panel"}
+              {showDiagnostics ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+            </button>
+          )}
+        </div>
       </div>
 
       {showDiagnostics && matches.length > 0 && (
@@ -164,6 +216,7 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
               <th className="py-4 px-4 text-center w-44">Bet365 (1X2)</th>
               <th className="py-4 px-4 text-center w-28">O/U 2.5 (Mozz)</th>
               <th className="py-4 px-4 text-center w-28">Referee Bias</th>
+              <th className="py-4 px-4 text-center w-32">Played Result</th>
               <th className="py-4 px-6 text-center w-20">Actions</th>
             </tr>
           </thead>
@@ -365,6 +418,33 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
                     ) : (
                       <span className="text-slate-600 text-xs italic">Unassigned</span>
                     )}
+                  </td>
+
+                  {/* Played Result cell */}
+                  <td className="py-4 px-4 text-center">
+                    <div className="flex flex-col items-center justify-center gap-1 font-mono text-[10px]">
+                      {m.outcome ? (
+                        <div className="flex flex-col gap-0.5 items-center">
+                          <span className="bg-purple-950 text-purple-300 px-2 py-0.5 border border-purple-800/40 rounded font-bold">
+                            1X2: {m.outcome}
+                          </span>
+                          {m.overUnderOutcome && (
+                            <span className="text-slate-400 font-medium bg-slate-950/60 px-1.5 py-0.2 rounded border border-slate-800">
+                              O/U: {m.overUnderOutcome}
+                            </span>
+                          )}
+                          {m.ggNgOutcome && (
+                            <span className="text-slate-400 font-medium bg-slate-950/60 px-1.5 py-0.2 rounded border border-slate-800">
+                              GG: {m.ggNgOutcome}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 italic bg-slate-950/40 border border-slate-850/60 px-2 py-0.5 rounded">
+                          Pending
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Actions column */}

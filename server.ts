@@ -1917,7 +1917,7 @@ Return your mapping in a strict JSON format with the following keys:
 
 // API: Manual edit override for a specific match
 app.post("/api/update-match", (req, res) => {
-  const { id, spHomeOdd, spDrawOdd, spAwayOdd, overOdds, underOdds, referee, refereeHomeBias, refereeDrawRate } = req.body;
+  const { id, spHomeOdd, spDrawOdd, spAwayOdd, overOdds, underOdds, referee, refereeHomeBias, refereeDrawRate, outcome, overUnderOutcome, ggNgOutcome } = req.body;
   const match = appState.matches.find(m => m.id === id);
   if (!match) {
     return res.status(404).json({ error: "Match not found" });
@@ -1932,6 +1932,10 @@ app.post("/api/update-match", (req, res) => {
   if (refereeHomeBias !== undefined) match.refereeHomeBias = Number(refereeHomeBias) || 0;
   if (refereeDrawRate !== undefined) match.refereeDrawRate = Number(refereeDrawRate) || 0.25;
 
+  if (outcome !== undefined) match.outcome = outcome || undefined;
+  if (overUnderOutcome !== undefined) match.overUnderOutcome = overUnderOutcome || undefined;
+  if (ggNgOutcome !== undefined) match.ggNgOutcome = ggNgOutcome || undefined;
+
   match.spMatchMethod = "manual";
   match.spMatchConfidence = 1.0;
   match.spMatchedName = `${match.homeTeam} vs ${match.awayTeam} (Overridden)`;
@@ -1943,8 +1947,103 @@ app.post("/api/update-match", (req, res) => {
     message: `Manual data input received for Match [${match.id}] ("${match.homeTeam} vs ${match.awayTeam}"). Values applied successfully.`,
   });
 
+  // Keep references synced
+  if (appState.activePool === "daily") {
+    appState.dailyMatches = appState.matches;
+  } else if (appState.activePool === "sportpesa_daily") {
+    appState.sportpesaDailyMatches = appState.matches;
+  } else if (appState.activePool === "mozz_weekly") {
+    appState.mozzWeeklyMatches = appState.matches;
+  } else if (appState.activePool === "sportpesa_weekly") {
+    appState.sportpesaWeeklyMatches = appState.matches;
+  }
+
   saveState(appState);
   res.json(appState);
+});
+
+// API: Settle active matches and commit them to the historical database
+app.post("/api/resolve-round", (req, res) => {
+  const { poolType } = req.body;
+  const matches = appState.matches;
+  
+  if (!matches || matches.length === 0) {
+    return res.status(400).json({ error: "No matches in current pool to resolve." });
+  }
+
+  const playedCount = matches.filter(m => m.outcome).length;
+  if (playedCount === 0) {
+    return res.status(400).json({ error: "At least one match must have an outcome set to settle the round." });
+  }
+
+  try {
+    // Compile results
+    const results = matches.map(m => ({
+      id: m.id,
+      outcome: m.outcome || "H", // default fallback for any pending games
+      overUnder: m.overUnderOutcome || "U",
+      ggNg: m.ggNgOutcome || "NG"
+    }));
+
+    if (!appState.historicalRounds) {
+      appState.historicalRounds = [];
+    }
+
+    const newRoundNumber = appState.historicalRounds.length + 1;
+    const newRound = {
+      roundNumber: newRoundNumber,
+      date: `Round #${newRoundNumber} (Settled ${new Date().toLocaleDateString()})`,
+      results
+    };
+
+    // Add as the latest round
+    appState.historicalRounds.unshift(newRound);
+
+    // Recalculate metrics dynamically to incorporate this new empirical data point
+    appState.positionalMetricsSummary = computePositionalMetrics(appState.historicalRounds);
+    appState.neuralActivationPaths = computeNeuralPathActivations(appState.historicalRounds);
+
+    // Apply solvers to active matches
+    solveTrapLines(appState.dailyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.sportpesaDailyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.mozzWeeklyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.sportpesaWeeklyMatches, appState.positionalMetricsSummary);
+    solveTrapLines(appState.matches, appState.positionalMetricsSummary);
+
+    // Reset played outcome values on the current active matches for the next round
+    appState.matches.forEach(m => {
+      delete m.outcome;
+      delete m.overUnderOutcome;
+      delete m.ggNgOutcome;
+    });
+
+    // Sync subpools back to matches state
+    if (appState.activePool === "daily") {
+      appState.dailyMatches = appState.matches;
+    } else if (appState.activePool === "sportpesa_daily") {
+      appState.sportpesaDailyMatches = appState.matches;
+    } else if (appState.activePool === "mozz_weekly") {
+      appState.mozzWeeklyMatches = appState.matches;
+    } else if (appState.activePool === "sportpesa_weekly") {
+      appState.sportpesaWeeklyMatches = appState.matches;
+    }
+
+    // Clear old optimized coupons to force re-run on clean slate
+    appState.optimizedCoupons = [];
+    appState.summaryMetrics = undefined;
+
+    appState.logs.unshift({
+      id: `log_settle_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      level: "success",
+      message: `Settle Success: Compiled current played matches into Historical Round #${newRoundNumber}. Dynamic Bayesian parameters and positional metrics have been fully updated.`,
+    });
+
+    saveState(appState);
+    res.json(appState);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed to settle and resolve round" });
+  }
 });
 
 // API: Reset State

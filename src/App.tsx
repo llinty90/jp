@@ -292,7 +292,12 @@ export default function App() {
           {/* Active Tab rendering */}
           {activeTab === "fixtures" && (
             <div className="flex flex-col gap-6 animate-fade-in">
-              <MatchList matches={state.matches} onEditMatch={(m) => setEditingMatch(m)} activePool={state.activePool} />
+              <MatchList 
+                matches={state.matches} 
+                onEditMatch={(m) => setEditingMatch(m)} 
+                activePool={state.activePool} 
+                onSettleSuccess={(data) => setState(data)}
+              />
             </div>
           )}
           {activeTab === "predictions" && (
