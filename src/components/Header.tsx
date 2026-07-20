@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ state, onScrape, onPredict, onRe
             <span className={`h-2.5 w-2.5 rounded-full ${state.isScraping || state.isPredicting ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
             <span className="text-slate-300">
               {state.isScraping
-                ? "Scraping SportPesa..."
+                ? `Scraping ${state.activePool ? state.activePool.replace("_", " ").toUpperCase() : "Jackpot"}...`
                 : state.isPredicting
                 ? "Running 1X2 Sims..."
                 : "Engine Idle"}
