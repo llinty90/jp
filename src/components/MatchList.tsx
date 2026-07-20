@@ -21,6 +21,42 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
   const [rawText, setRawText] = useState("");
   const [verifiedMatches, setVerifiedMatches] = useState<Record<number, boolean>>({});
 
+  const [showFixtureIngest, setShowFixtureIngest] = useState(false);
+  const [rawFixtureText, setRawFixtureText] = useState("");
+  const [isIngestingFixtures, setIsIngestingFixtures] = useState(false);
+
+  const handleIngestFixtures = async () => {
+    setIsIngestingFixtures(true);
+    try {
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          poolType: activePool,
+          rawText: rawFixtureText
+        })
+      });
+      if (!res.ok) {
+        let msg = `Server error (Status ${res.status})`;
+        try {
+          const errJson = await res.json();
+          if (errJson.error) msg = errJson.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      const updatedState = await res.json();
+      if (onSettleSuccess) {
+        onSettleSuccess(updatedState);
+      }
+      setRawFixtureText("");
+      setShowFixtureIngest(false);
+    } catch (err: any) {
+      alert(err.message || "Failed to ingest fixtures");
+    } finally {
+      setIsIngestingFixtures(false);
+    }
+  };
+
   // Synchronize verification checkboxes when matches are loaded or updated
   useEffect(() => {
     const initial: Record<number, boolean> = {};
@@ -194,6 +230,13 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowFixtureIngest(!showFixtureIngest)}
+            className="flex items-center gap-1.5 bg-blue-950/60 hover:bg-blue-900 text-blue-300 hover:text-white px-3 py-1.5 rounded-xl border border-blue-900/50 text-xs font-semibold transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 text-blue-400 ${isIngestingFixtures ? "animate-spin" : ""}`} />
+            Auto-Update Matches (Paste)
+          </button>
           {hasOutcomes && (
             <button
               onClick={handleSettleRound}
@@ -220,6 +263,58 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
           )}
         </div>
       </div>
+
+      {showFixtureIngest && (
+        <div className="bg-slate-950 border-b border-slate-800 p-5 animate-fade-in">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-semibold text-sm text-slate-200">
+                  Intelligent Ingest: {activePool.toUpperCase()} Jackpot Schedule & Odds
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Paste the raw website text/HTML from the active Mozzart or SportPesa jackpot. Gemini AI will automatically extract and map fixtures, game numbers, 1X2 odds, O/U, and GG/NG lines!
+                </p>
+              </div>
+            </div>
+            <textarea
+              value={rawFixtureText}
+              onChange={(e) => setRawFixtureText(e.target.value)}
+              placeholder="Right-click and Select All (Ctrl+A), Copy (Ctrl+C), and Paste (Ctrl+V) raw website source or highlighted content here..."
+              rows={5}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3.5 text-xs font-mono text-slate-300 placeholder-slate-600 focus:outline-none focus:border-blue-500"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setRawFixtureText("");
+                  setShowFixtureIngest(false);
+                }}
+                className="bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-850 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleIngestFixtures}
+                disabled={isIngestingFixtures || !rawFixtureText.trim()}
+                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                {isIngestingFixtures ? (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    Ingesting & Aligning...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Parse & Update System
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDiagnostics && matches.length > 0 && (
         <div className="bg-slate-950/80 border-b border-slate-800 p-5 font-mono animate-fade-in flex flex-col gap-4">
@@ -493,7 +588,7 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
               <th className="py-4 px-4 text-center w-40">Mozzartbet (1X2)</th>
               <th className="py-4 px-4 text-center w-44">SportPesa (1X2)</th>
               <th className="py-4 px-4 text-center w-44">Bet365 (1X2)</th>
-              <th className="py-4 px-4 text-center w-28">O/U 2.5 (Mozz)</th>
+              <th className="py-4 px-4 text-center w-36">O/U & GG/NG</th>
               <th className="py-4 px-4 text-center w-28">Referee Bias</th>
               <th className="py-4 px-4 text-center w-32">Played Result</th>
               <th className="py-4 px-6 text-center w-20">Actions</th>
@@ -660,19 +755,27 @@ export const MatchList: React.FC<MatchListProps> = ({ matches, onEditMatch, acti
                     )}
                   </td>
 
-                  {/* Over/Under 2.5 Market lines */}
+                  {/* Over/Under 2.5 and GG/NG Market lines */}
                   <td className="py-4 px-4 text-center font-mono">
-                    <div className="flex flex-col items-center justify-center gap-1">
+                    <div className="flex flex-col items-center justify-center gap-1.5">
                       <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-[10px] text-slate-500 font-mono">Over:</span>
-                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-emerald-400 font-semibold text-center min-w-[40px]" title="Over 2.5 Goals Odd">
-                          {m.overOdds ? m.overOdds.toFixed(2) : "—"}
+                        <span className="text-[10px] text-slate-500 font-mono">O:</span>
+                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-emerald-400 font-semibold text-center min-w-[36px]" title="Over 2.5 Goals Odd">
+                          {m.overOdds ? m.overOdds.toFixed(2) : "1.90"}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono ml-1">U:</span>
+                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-blue-400 font-semibold text-center min-w-[36px]" title="Under 2.5 Goals Odd">
+                          {m.underOdds ? m.underOdds.toFixed(2) : "1.80"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-[10px] text-slate-500 font-mono">Under:</span>
-                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-blue-400 font-semibold text-center min-w-[40px]" title="Under 2.5 Goals Odd">
-                          {m.underOdds ? m.underOdds.toFixed(2) : "—"}
+                      <div className="flex items-center gap-1.5 text-xs border-t border-slate-800/40 pt-1 w-full justify-center">
+                        <span className="text-[10px] text-slate-500 font-mono">GG:</span>
+                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-teal-400 font-semibold text-center min-w-[36px]" title="GG (Both Teams to Score Yes)">
+                          {m.ggOdds ? m.ggOdds.toFixed(2) : "1.95"}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono ml-1">NG:</span>
+                        <span className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-amber-500 font-semibold text-center min-w-[36px]" title="NG (Both Teams to Score No)">
+                          {m.ngOdds ? m.ngOdds.toFixed(2) : "1.80"}
                         </span>
                       </div>
                     </div>

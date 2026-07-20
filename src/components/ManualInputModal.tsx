@@ -17,12 +17,16 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
   const [b365AwayOdd, setB365AwayOdd] = useState<string>("");
   const [overOdds, setOverOdds] = useState<string>("");
   const [underOdds, setUnderOdds] = useState<string>("");
+  const [ggOdds, setGgOdds] = useState<string>("");
+  const [ngOdds, setNgOdds] = useState<string>("");
   const [referee, setReferee] = useState<string>("");
   const [refereeHomeBias, setRefereeHomeBias] = useState<string>("");
   const [refereeDrawRate, setRefereeDrawRate] = useState<string>("");
   const [outcome, setOutcome] = useState<string>("");
   const [overUnderOutcome, setOverUnderOutcome] = useState<string>("");
   const [ggNgOutcome, setGgNgOutcome] = useState<string>("");
+  const [homeScore, setHomeScore] = useState<string>("");
+  const [awayScore, setAwayScore] = useState<string>("");
 
   useEffect(() => {
     if (match) {
@@ -34,14 +38,50 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
       setB365AwayOdd(match.b365AwayOdd?.toString() || "");
       setOverOdds(match.overOdds?.toString() || "");
       setUnderOdds(match.underOdds?.toString() || "");
+      setGgOdds(match.ggOdds?.toString() || "");
+      setNgOdds(match.ngOdds?.toString() || "");
       setReferee(match.referee || "");
       setRefereeHomeBias(match.refereeHomeBias?.toString() || "0");
       setRefereeDrawRate(match.refereeDrawRate?.toString() || "0.25");
       setOutcome(match.outcome || "");
       setOverUnderOutcome(match.overUnderOutcome || "");
       setGgNgOutcome(match.ggNgOutcome || "");
+      setHomeScore(match.homeScore !== undefined ? match.homeScore.toString() : "");
+      setAwayScore(match.awayScore !== undefined ? match.awayScore.toString() : "");
     }
   }, [match]);
+
+  // Auto-calculate outcomes when homeScore or awayScore changes
+  useEffect(() => {
+    if (homeScore !== "" && awayScore !== "") {
+      const h = parseInt(homeScore, 10);
+      const a = parseInt(awayScore, 10);
+      if (!isNaN(h) && !isNaN(a)) {
+        // outcome
+        if (h > a) {
+          setOutcome("H");
+        } else if (h === a) {
+          setOutcome("D");
+        } else {
+          setOutcome("A");
+        }
+
+        // overUnder
+        if (h + a > 2.5) {
+          setOverUnderOutcome("O");
+        } else {
+          setOverUnderOutcome("U");
+        }
+
+        // ggNg
+        if (h > 0 && a > 0) {
+          setGgNgOutcome("GG");
+        } else {
+          setGgNgOutcome("NG");
+        }
+      }
+    }
+  }, [homeScore, awayScore]);
 
   if (!match) return null;
 
@@ -56,12 +96,16 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
       b365AwayOdd: b365AwayOdd ? Number(b365AwayOdd) : undefined,
       overOdds: overOdds ? Number(overOdds) : undefined,
       underOdds: underOdds ? Number(underOdds) : undefined,
+      ggOdds: ggOdds ? Number(ggOdds) : undefined,
+      ngOdds: ngOdds ? Number(ngOdds) : undefined,
       referee: referee || undefined,
       refereeHomeBias: refereeHomeBias ? Number(refereeHomeBias) : undefined,
       refereeDrawRate: refereeDrawRate ? Number(refereeDrawRate) : undefined,
       outcome: outcome ? (outcome as "H" | "D" | "A") : undefined,
       overUnderOutcome: overUnderOutcome ? (overUnderOutcome as "O" | "U") : undefined,
       ggNgOutcome: ggNgOutcome ? (ggNgOutcome as "GG" | "NG") : undefined,
+      homeScore: homeScore !== "" ? Number(homeScore) : null,
+      awayScore: awayScore !== "" ? Number(awayScore) : null,
     });
   };
 
@@ -189,33 +233,65 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
             </div>
           </div>
 
-          {/* Over/Under Odds */}
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
-              O/U 2.5 Market Lines (Optional)
-            </span>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] text-slate-500 block mb-1 font-mono">OVER 2.5</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={overOdds}
-                  onChange={(e) => setOverOdds(e.target.value)}
-                  placeholder="2.00"
-                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
-                />
+          {/* O/U 2.5 & GG/NG Market Lines */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+                O/U 2.5 Market Lines (Optional)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1 font-mono">OVER 2.5</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={overOdds}
+                    onChange={(e) => setOverOdds(e.target.value)}
+                    placeholder="2.00"
+                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-1.5 px-2.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1 font-mono">UNDER 2.5</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={underOdds}
+                    onChange={(e) => setUnderOdds(e.target.value)}
+                    placeholder="1.75"
+                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-1.5 px-2.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-[10px] text-slate-500 block mb-1 font-mono">UNDER 2.5</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={underOdds}
-                  onChange={(e) => setUnderOdds(e.target.value)}
-                  placeholder="1.75"
-                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
-                />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+                GG/NG Market Lines (Optional)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1 font-mono">GG (BTTS-YES)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={ggOdds}
+                    onChange={(e) => setGgOdds(e.target.value)}
+                    placeholder="1.95"
+                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-1.5 px-2.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1 font-mono">NG (BTTS-NO)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={ngOdds}
+                    onChange={(e) => setNgOdds(e.target.value)}
+                    placeholder="1.80"
+                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-1.5 px-2.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -227,8 +303,37 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
               Settle Actual Played Result
             </span>
             <p className="text-[10px] text-slate-400 leading-normal">
-              Enter the actual played outcome to feed back into the AI calibration core.
+              Entering the goals scored will automatically calculate and pre-select the 1X2, O/U 2.5, and GG/NG outcomes below.
             </p>
+
+            {/* Goals scored inputs */}
+            <div className="grid grid-cols-2 gap-3 mt-1 mb-2">
+              <div>
+                <label className="text-[10px] text-slate-300 block mb-1 font-mono font-bold">HOME GOALS</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={homeScore}
+                  onChange={(e) => setHomeScore(e.target.value)}
+                  placeholder="e.g. 2"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-xs text-slate-200 font-mono focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-300 block mb-1 font-mono font-bold">AWAY GOALS</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={awayScore}
+                  onChange={(e) => setAwayScore(e.target.value)}
+                  placeholder="e.g. 1"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-xs text-slate-200 font-mono focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-3 gap-3 mt-1">
               <div>
                 <label className="text-[10px] text-slate-400 block mb-1 font-mono">1X2 OUTCOME</label>
