@@ -2067,6 +2067,26 @@ Return your mapping in a strict JSON format with the following keys:
         }
       }
 
+      // Cross-match Weekly Pools to compute drift alignments
+      for (const m of appState.mozzWeeklyMatches) {
+        const spWeeklyMatch = appState.sportpesaWeeklyMatches.find(sp =>
+          normalizeName(sp.homeTeam) === normalizeName(m.homeTeam) ||
+          getTokenOverlap(sp.homeTeam, m.homeTeam) > 0.6
+        );
+
+        if (spWeeklyMatch) {
+          m.mozzPosition = m.id;
+          m.spPosition = spWeeklyMatch.id;
+          m.isRepeated = true;
+          m.repeatedInPools = ["sportpesa_weekly"];
+
+          spWeeklyMatch.mozzPosition = m.id;
+          spWeeklyMatch.spPosition = spWeeklyMatch.id;
+          spWeeklyMatch.isRepeated = true;
+          spWeeklyMatch.repeatedInPools = ["mozz_weekly"];
+        }
+      }
+
       // Synchronize matches of the currently active pool
       if (appState.activePool === "daily") {
         appState.matches = appState.dailyMatches;
