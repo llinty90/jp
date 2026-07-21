@@ -6,6 +6,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { Match, DashboardState, ScrapingLog, Coupon, CalibratedParameters } from "./src/types.js";
 import { generateSyntheticHistory, computePositionalMetrics, computeNeuralPathActivations, solveTrapLines, tryLoadLocalCSVHistory, parseCsvHistory } from "./src/utils/positionalNeuralCore.js";
+import { runFullPrediction, runMonteCarloCoupons, runOnlineLearning, buildSummaryMetrics } from "./src/utils/predictionEngine.js";
 
 // Setup environment and paths
 const _filename = typeof import.meta !== "undefined" && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== "undefined" ? __filename : "");
@@ -52,26 +53,29 @@ function getTokenOverlap(a: string, b: string): number {
 }
 
 // Baseline odds and probabilities
-const BASELINE_H = 0.382;
-const BASELINE_D = 0.257;
-const BASELINE_A = 0.361;
+// Empirical baselines from jackpot_main_clean.csv (1,246 matches, Feb-Apr 2026)
+// H=37.3%, D=30.3%, A=32.4% — replaces theoretical defaults which overestimated home wins
+const BASELINE_H = 0.373;
+const BASELINE_D = 0.303;
+const BASELINE_A = 0.324;
 
 const DEFAULT_CALIBRATED_PARAMETERS: CalibratedParameters = {
-  baselinePriorH: 0.382,
-  baselinePriorD: 0.257,
-  baselinePriorA: 0.361,
-  priorWeight: 0.3,
-  marketWeight: 0.7,
+  // Empirically calibrated from 1,246 jackpot matches (Feb-Apr 2026)
+  baselinePriorH: 0.373,
+  baselinePriorD: 0.303,
+  baselinePriorA: 0.324,
+  priorWeight: 0.35,
+  marketWeight: 0.65,
   refereeHomeBiasMultiplier: 1.5,
-  refereeDrawRateMultiplier: 1.8,
+  refereeDrawRateMultiplier: 1.2,
   sponsorDrawBoost: 0.35,
-  trapHomeDiscount: 0.40,
-  trapAwayPremium: 0.35,
+  trapHomeDiscount: 0.28,
+  trapAwayPremium: 0.22,
   positionalSpellDrawMultiplier: 0.18,
-  positionalSpellAwayMultiplier: 0.15,
-  dirichletAlpha: 3.0,
-  llnCorrectionStrength: 2.0,
-  accuracyEstimate: 74.2,
+  positionalSpellAwayMultiplier: 0.14,
+  dirichletAlpha: 2.8,
+  llnCorrectionStrength: 1.9,
+  accuracyEstimate: 50.0,
   lastCalibratedAt: "Default System Baseline"
 };
 
@@ -2220,6 +2224,24 @@ app.post("/api/resolve-round", (req, res) => {
     appState.positionalMetricsSummary = computePositionalMetrics(appState.historicalRounds);
     appState.neuralActivationPaths = computeNeuralPathActivations(appState.historicalRounds);
 
+    // MODULE 17: Online Learning Loop — adjust calibrated parameters from real outcomes
+    if (!appState.accuracyHistory) appState.accuracyHistory = [];
+    const settledWithPredictions = matches.filter(m => m.outcome && m.predictions);
+    if (settledWithPredictions.length > 0 && appState.calibratedParameters) {
+      appState.calibratedParameters = runOnlineLearning(
+        settledWithPredictions,
+        appState.calibratedParameters,
+        appState.accuracyHistory,
+        appState.historicalRounds.length
+      );
+      appState.logs.unshift({
+        id: `log_learn_${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString(),
+        level: "success",
+        message: `[Learning] Round #${appState.historicalRounds.length} settled. Accuracy: ${appState.accuracyHistory.slice(-1)[0]?.accuracy.toFixed(1)}%. Parameters auto-updated (α=${appState.calibratedParameters.dirichletAlpha.toFixed(2)}, LLN=${appState.calibratedParameters.llnCorrectionStrength.toFixed(2)}, Prior:Market=${appState.calibratedParameters.priorWeight.toFixed(2)}:${appState.calibratedParameters.marketWeight.toFixed(2)}).`,
+      });
+    }
+
     // Apply solvers to active matches
     solveTrapLines(appState.dailyMatches, appState.positionalMetricsSummary);
     solveTrapLines(appState.sportpesaDailyMatches, appState.positionalMetricsSummary);
@@ -2765,6 +2787,8 @@ app.post("/api/predict", (req, res) => {
       const kellyFrac = appState.kellyFraction;
       const bankroll = appState.bankroll;
       const params = appState.calibratedParameters || DEFAULT_CALIBRATED_PARAMETERS;
+      const simCount = appState.nSimulations || 150000;
+      const targets = appState.drawTarget || [3, 4, 5];
 
       // Track running outcome distributions to implement Recursive Belief Updater
       let rh = 0;
@@ -2839,449 +2863,34 @@ app.post("/api/predict", (req, res) => {
         }
       }
 
-      // 1. Run Bayesian Prediction Logic for each match
-      for (const m of currentMatches) {
-        // Fallback for SportPesa odds if missing
-        const hOdd = m.spHomeOdd || m.mozzHomeOdd;
-        const dOdd = m.spDrawOdd || m.mozzDrawOdd;
-        const aOdd = m.spAwayOdd || m.mozzAwayOdd;
+      // 1. Run unified prediction engine on the matches
+      appState.matches = runFullPrediction(
+        currentMatches,
+        params,
+        appState.positionalMetricsSummary,
+        appState.neuralActivationPaths || [],
+        kellyFrac
+      );
 
-        // Implied market probabilities
-        const rawOverround = 1 / hOdd + 1 / dOdd + 1 / aOdd;
-        const marketH = (1 / hOdd) / rawOverround;
-        const marketD = (1 / dOdd) / rawOverround;
-        const marketA = (1 / aOdd) / rawOverround;
+      // 2. Run coupon optimizer via Monte Carlo simulations
+      appState.optimizedCoupons = runMonteCarloCoupons(
+        appState.matches,
+        appState.drawTarget,
+        simCount
+      );
 
-        // Start with additive log-odds Bayesian accumulator (replaces multiplicative slop)
-        // Combine baseline priors and market probabilities using calibrated weights
-        let logOddsH = Math.log(params.baselinePriorH / (1 - params.baselinePriorH)) * params.priorWeight + Math.log(marketH / (1 - marketH)) * params.marketWeight;
-        let logOddsD = Math.log(params.baselinePriorD / (1 - params.baselinePriorD)) * params.priorWeight + Math.log(marketD / (1 - marketD)) * params.marketWeight;
-        let logOddsA = Math.log(params.baselinePriorA / (1 - params.baselinePriorA)) * params.priorWeight + Math.log(marketA / (1 - marketA)) * params.marketWeight;
-
-        const reasons: string[] = ["Fitted baseline historical priors with market overround removal"];
-
-        // Applied Tier 3 Match-level: Referee Bias
-        if (m.refereeHomeBias) {
-          logOddsH += m.refereeHomeBias * params.refereeHomeBiasMultiplier;
-          reasons.push(`Referee ${m.referee} has a known home bias (multiplier applied: ${params.refereeHomeBiasMultiplier})`);
-        }
-        if (m.refereeDrawRate && m.refereeDrawRate > 0.28) {
-          logOddsD += (m.refereeDrawRate - params.baselinePriorD) * params.refereeDrawRateMultiplier;
-          reasons.push(`Referee ${m.referee} draw rate is high (${Math.round(m.refereeDrawRate * 100)}%)`);
-        }
-
-        // Applied Tier 4 Adversarial: Sponsorship Conflict Bias
-        if (m.sponsorsMatch) {
-          logOddsD += params.sponsorDrawBoost; // Boost draws
-          reasons.push(`Sponsorship Conflict: Both clubs sponsored by ${m.homeSponsor} (boosts Draw probability by +${params.sponsorDrawBoost.toFixed(2)})`);
-        }
-
-        // Applied Tier 4: Inverse Bookie Trap Model (Powered by dynamic Positional Spells)
-        let isTrap = m.id === 3 || m.id === 5 || m.id === 13;
-        const posMetric = appState.positionalMetricsSummary?.[m.id];
-        
-        if (m.trapAdvised) {
-          isTrap = true;
-          logOddsH -= params.trapHomeDiscount;
-          logOddsA += params.trapAwayPremium;
-          reasons.push(`Positional Trap Solver: ${m.trapReason}`);
-        } else if (isTrap) {
-          logOddsH -= params.trapHomeDiscount * 0.75;
-          logOddsA += params.trapAwayPremium * 0.71;
-          reasons.push("Inverse Bookie Model: Identified trap line structure (odds too short for baseline favorability)");
-        }
-
-        // Apply Positional Spell statistics (standard deviation / mean-reversion impulses)
-        if (posMetric) {
-          // If Draw dry spell is stretched tight, boost Draw probability
-          if (posMetric.outcomes.D.deviationSigma > 1.5) {
-            logOddsD += posMetric.outcomes.D.deviationSigma * params.positionalSpellDrawMultiplier;
-            reasons.push(`Positional Spell Engine: Draw option at Slot ${m.id} has an active dry spell of ${posMetric.outcomes.D.currentDrySpell} rounds (Mean: ${posMetric.outcomes.D.mean}, Sigma: +${posMetric.outcomes.D.deviationSigma}). Mean-reverting impulse applied (+${Math.round(posMetric.outcomes.D.deviationSigma * params.positionalSpellDrawMultiplier * 100)}% Draw weight).`);
-          }
-          // If Away win dry spell is stretched tight, boost Away win probability
-          if (posMetric.outcomes.A.deviationSigma > 1.6) {
-            logOddsA += posMetric.outcomes.A.deviationSigma * params.positionalSpellAwayMultiplier;
-            reasons.push(`Positional Spell Engine: Away option at Slot ${m.id} has an active dry spell of ${posMetric.outcomes.A.currentDrySpell} rounds (Mean: ${posMetric.outcomes.A.mean}, Sigma: +${posMetric.outcomes.A.deviationSigma}). Mean-reverting impulse applied (+${Math.round(posMetric.outcomes.A.deviationSigma * params.positionalSpellAwayMultiplier * 100)}% Away weight).`);
-          }
-        }
-
-        // Applied Positional Bias & Cross-Pool Alignment exploitation:
-        if (m.isRepeated && m.mozzPosition !== undefined && m.spPosition !== undefined) {
-          const drift = Math.abs(m.mozzPosition - m.spPosition);
-          if (drift > 5) {
-            logOddsD += 0.30; // Positional drift booster
-            m.positionalBiasScore = 0.30;
-            m.expectedDistributionBias = "D";
-            drawPatternMatches++;
-            reasons.push(`Positional Drift: Placed in Slot ${m.mozzPosition} (Mozzart) vs Slot ${m.spPosition} (SportPesa). High drift (${drift} slots) triggers an intentional bookmaker draw-cluster bias. Draw boosted.`);
-          } else if (drift === 0) {
-            logOddsH += 0.15; // Low/Zero drift indicating high outcome certainty
-            m.positionalBiasScore = -0.10;
-            m.expectedDistributionBias = "H";
-            reasons.push(`Positional Conformity: Placed at identical Slot ${m.mozzPosition} across bookmakers, validating baseline home-strength.`);
-          } else {
-            m.positionalBiasScore = 0.08;
-            m.expectedDistributionBias = "NEUTRAL";
-            reasons.push(`Positional Drift: Modest shift of ${drift} slots between coupons indicates normal statistical pricing consensus.`);
-          }
-        }
-
-        // Applied Cross-Bookie draw discrepancy value detection:
-        if (m.spDrawOdd && m.mozzDrawOdd) {
-          const oddsGap = Math.abs(m.spDrawOdd - m.mozzDrawOdd);
-          if (oddsGap > 0.35) {
-            logOddsD += 0.20;
-            reasons.push(`Cross-bookie discrepancy: Premium odds gap of ${oddsGap.toFixed(2)} detected on Draw option, adding high mathematical value.`);
-          }
-        }
-
-        // Applied Tier 4: Recursive Belief Updater (Running Pool outcome balance)
-        if (rh > 4) {
-          logOddsH -= 0.15; // Suppress home wins slightly to balance pool
-        }
-        if (rd > 3) {
-          logOddsD -= 0.12;
-        }
-
-        // Reconvert log-odds to raw probabilities
-        const evH = Math.exp(logOddsH);
-        const evD = Math.exp(logOddsD);
-        const evA = Math.exp(logOddsA);
-        const sumEv = evH + evD + evA;
-
-        let probH = evH / sumEv;
-        let probD = evD / sumEv;
-        let probA = evA / sumEv;
-
-        // Apply Adaptive Dirichlet smoothing
-        const alpha = params.dirichletAlpha;
-        probH = (probH + alpha * (1 / 3)) / (1 + alpha);
-        probD = (probD + alpha * (1 / 3)) / (1 + alpha);
-        probA = (probA + alpha * (1 / 3)) / (1 + alpha);
-
-        // Best outcome selection
-        const bestPick = probH > probD && probH > probA ? "H" : (probD > probA ? "D" : "A");
-
-        if (bestPick === "H") rh++;
-        else if (bestPick === "D") rd++;
-        else ra++;
-
-        // EV calculation = prob * odds - 1
-        const predEvH = probH * hOdd - 1;
-        const predEvD = probD * dOdd - 1;
-        const predEvA = probA * aOdd - 1;
-
-        // Kelly sizing: fraction = (odds * prob - (1 - prob)) / odds
-        const calcKelly = (p: number, odd: number) => {
-          const decOdds = odd - 1;
-          if (decOdds <= 0) return 0;
-          const k = (decOdds * p - (1 - p)) / decOdds;
-          return Math.max(0, k * kellyFrac);
-        };
-
-        const kellyH = calcKelly(probH, hOdd);
-        const kellyD = calcKelly(probD, dOdd);
-        const kellyA = calcKelly(probA, aOdd);
-
-        // ----------------------------------------------------
-        // Advanced Market Consensus & Divergence Kinetics
-        // ----------------------------------------------------
-        // Overround-removed implied probabilities for Mozzart
-        const mRawOverround = 1 / m.mozzHomeOdd + 1 / m.mozzDrawOdd + 1 / m.mozzAwayOdd;
-        const mImpliedH = (1 / m.mozzHomeOdd) / mRawOverround;
-        const mImpliedD = (1 / m.mozzDrawOdd) / mRawOverround;
-        const mImpliedA = (1 / m.mozzAwayOdd) / mRawOverround;
-
-        // Collect all available bookmaker probabilities to compute the market consensus
-        const bookieProbs: { h: number; d: number; a: number }[] = [{ h: mImpliedH, d: mImpliedD, a: mImpliedA }];
-
-        if (m.spHomeOdd && m.spDrawOdd && m.spAwayOdd) {
-          const spOverround = 1 / m.spHomeOdd + 1 / m.spDrawOdd + 1 / m.spAwayOdd;
-          bookieProbs.push({
-            h: (1 / m.spHomeOdd) / spOverround,
-            d: (1 / m.spDrawOdd) / spOverround,
-            a: (1 / m.spAwayOdd) / spOverround
-          });
-        }
-        if (m.b365HomeOdd && m.b365DrawOdd && m.b365AwayOdd) {
-          const b365Overround = 1 / m.b365HomeOdd + 1 / m.b365DrawOdd + 1 / m.b365AwayOdd;
-          bookieProbs.push({
-            h: (1 / m.b365HomeOdd) / b365Overround,
-            d: (1 / m.b365DrawOdd) / b365Overround,
-            a: (1 / m.b365AwayOdd) / b365Overround
-          });
-        }
-
-        // Average of implied probabilities = consensus
-        const consensusH = bookieProbs.reduce((sum, p) => sum + p.h, 0) / bookieProbs.length;
-        const consensusD = bookieProbs.reduce((sum, p) => sum + p.d, 0) / bookieProbs.length;
-        const consensusA = bookieProbs.reduce((sum, p) => sum + p.a, 0) / bookieProbs.length;
-
-        // Discrepancy (leak-proof drift/velocity signal)
-        const diffH = mImpliedH - consensusH;
-        const diffD = mImpliedD - consensusD;
-        const diffA = mImpliedA - consensusA;
-
-        let velocitySignal: "STABLE" | "SHARP_HOME_DRIFT" | "SHARP_AWAY_DRIFT" | "DRAW_ANOMALY" = "STABLE";
-        if (diffH > 0.05) {
-          velocitySignal = "SHARP_HOME_DRIFT";
-          reasons.push(`Consensus Kinetics: Mozzart is over-weighting Home win by +${(diffH * 100).toFixed(1)}% relative to consensus. Potential value on Draw/Away.`);
-        } else if (diffA > 0.05) {
-          velocitySignal = "SHARP_AWAY_DRIFT";
-          reasons.push(`Consensus Kinetics: Mozzart is over-weighting Away win by +${(diffA * 100).toFixed(1)}% relative to consensus. Potential value on Home/Draw.`);
-        } else if (diffD < -0.05) {
-          velocitySignal = "DRAW_ANOMALY";
-          reasons.push(`Consensus Kinetics: Mozzart is severely under-pricing the Draw option by ${(diffD * 100).toFixed(1)}% relative to consensus, signaling bookmaker trap defense.`);
-        }
-
-        // ----------------------------------------------------
-        // Goal-Goal (GG) and Poisson Expected Goals Core
-        // ----------------------------------------------------
-        let ouImpliedGoals = 2.50; // default baseline
-        let calculatedGgProb = 0.52;
-
-        if (m.overOdds && m.underOdds) {
-          const ouOverround = 1 / m.overOdds + 1 / m.underOdds;
-          const pOver = (1 / m.overOdds) / ouOverround;
-
-          // Solve Poisson inverse lambda using Newton-Raphson: 1 - e^-L * (1 + L + L^2/2) = pOver
-          let lambda = 2.50; // initial estimate
-          for (let iter = 0; iter < 10; iter++) {
-            const expTerm = Math.exp(-lambda);
-            const func = expTerm * (1 + lambda + (lambda * lambda) / 2) - (1 - pOver);
-            const derivative = -expTerm * ((lambda * lambda) / 2);
-            if (Math.abs(derivative) > 1e-9) {
-              const nextLambda = lambda - func / derivative;
-              lambda = Math.max(0.1, Math.min(nextLambda, 7.5));
-            }
-          }
-          ouImpliedGoals = lambda;
-
-          // Calculate GG (BTTS Yes) probability using Poisson proxy
-          const halfLambda = lambda / 2;
-          const pScore = 1 - Math.exp(-halfLambda); // P(team scores >= 1)
-          calculatedGgProb = pScore * pScore; // P(both teams score)
-
-          reasons.push(`Goal Core: Over/Under 2.5 line implies an expected goal mean of ${lambda.toFixed(2)} goals (Poisson proxy GG probability: ${(calculatedGgProb * 100).toFixed(1)}%)`);
-        }
-
-        m.predictions = {
-          probH: Math.round(probH * 1000) / 1000,
-          probD: Math.round(probD * 1000) / 1000,
-          probA: Math.round(probA * 1000) / 1000,
-          bestPick,
-          evH: Math.round(predEvH * 1000) / 1000,
-          evD: Math.round(predEvD * 1000) / 1000,
-          evA: Math.round(predEvA * 1000) / 1000,
-          kellyH: Math.round(kellyH * 1000) / 1000,
-          kellyD: Math.round(kellyD * 1000) / 1000,
-          kellyA: Math.round(kellyA * 1000) / 1000,
-          isTrap,
-          isSponsorDraw: m.sponsorsMatch || false,
-          velocitySignal,
-          reasons,
-        };
-      }
-
-      // Pass 2: Positional Segment Convergence & Recursive LLN Balancer
-      const totalN = currentMatches.length;
-      let runningH = 0;
-      let runningD = 0;
-      let runningA = 0;
-
-      // Group into 4 segments (Quarters of the pool)
-      const segmentSize = Math.ceil(totalN / 4);
-
-      for (let i = 0; i < totalN; i++) {
-        const m = currentMatches[i];
-        const pred = m.predictions!;
-        const segmentIdx = Math.floor(i / segmentSize); // 0 to 3
-
-        // Historical global expected distribution (baseline priors)
-        const expH = params.baselinePriorH;
-        const expD = params.baselinePriorD;
-        const expA = params.baselinePriorA;
-
-        // Apply Recursive Belief Updater (Law of Large Numbers Convergence)
-        // If the processed pool has deviated from the expected mean, we pull remaining matches back
-        let llnCorrectionH = 1.0;
-        let llnCorrectionD = 1.0;
-        let llnCorrectionA = 1.0;
-
-        if (i > 0) {
-          const ratioH = runningH / i;
-          const ratioD = runningD / i;
-          const ratioA = runningA / i;
-
-          // If Home is overrepresented, scale down remaining Home probabilities
-          if (ratioH > expH + 0.10) {
-            llnCorrectionH = Math.max(0.60, 1.0 - (ratioH - expH) * params.llnCorrectionStrength);
-          } else if (ratioH < expH - 0.10) {
-            llnCorrectionH = Math.min(1.40, 1.0 + (expH - ratioH) * params.llnCorrectionStrength);
-          }
-
-          if (ratioD > expD + 0.08) {
-            llnCorrectionD = Math.max(0.60, 1.0 - (ratioD - expD) * params.llnCorrectionStrength * 1.1);
-          } else if (ratioD < expD - 0.08) {
-            llnCorrectionD = Math.min(1.40, 1.0 + (expD - ratioD) * params.llnCorrectionStrength * 1.1);
-          }
-
-          if (ratioA > expA + 0.10) {
-            llnCorrectionA = Math.max(0.60, 1.0 - (ratioA - expA) * params.llnCorrectionStrength);
-          } else if (ratioA < expA - 0.10) {
-            llnCorrectionA = Math.min(1.40, 1.0 + (expA - ratioA) * params.llnCorrectionStrength);
-          }
-        }
-
-        // Apply Segment-based Geometric Sequence filtering (Central Limit Theorem)
-        // Segment boundaries: Q1 (1-4), Q2 (5-8), Q3 (9-12), Q4 (13+)
-        // Bookmakers often clump draws/traps. If a segment has successive draws, dampen the subsequent ones geometrically
-        let segmentDrawDamping = 1.0;
-        let segmentInMatchIdx = i % segmentSize;
-        if (segmentInMatchIdx > 0) {
-          // Count how many draws predicted so far in this segment
-          let drawsInSegment = 0;
-          for (let j = i - segmentInMatchIdx; j < i; j++) {
-            if (currentMatches[j].predictions!.bestPick === "D") {
-              drawsInSegment++;
-            }
-          }
-          if (drawsInSegment >= 2) {
-            // Apply geometric sequences damping: r^k where r=0.82
-            segmentDrawDamping = Math.pow(0.82, drawsInSegment);
-          }
-        }
-
-        // Adjust probabilities
-        let newProbH = pred.probH * llnCorrectionH;
-        let newProbD = pred.probD * llnCorrectionD * segmentDrawDamping;
-        let newProbA = pred.probA * llnCorrectionA;
-
-        // Re-normalize
-        const sumNew = newProbH + newProbD + newProbA;
-        pred.probH = Math.round((newProbH / sumNew) * 1000) / 1000;
-        pred.probD = Math.round((newProbD / sumNew) * 1000) / 1000;
-        pred.probA = Math.round((newProbA / sumNew) * 1000) / 1000;
-
-        // Recalculate best pick and update running counts
-        const bestPick = pred.probH > pred.probD && pred.probH > pred.probA ? "H" : (pred.probD > pred.probA ? "D" : "A");
-        pred.bestPick = bestPick;
-
-        if (bestPick === "H") runningH++;
-        else if (bestPick === "D") runningD++;
-        else runningA++;
-
-        // Add explanation log
-        if (llnCorrectionD !== 1.0 || segmentDrawDamping !== 1.0) {
-          pred.reasons.push(
-            `CLT/LLN Segment Core: Segment Q${segmentIdx+1} Draw variance dampener: x${segmentDrawDamping.toFixed(2)}. Pool outcome balance multiplier: [H:x${llnCorrectionH.toFixed(2)}, D:x${llnCorrectionD.toFixed(2)}, A:x${llnCorrectionA.toFixed(2)}] applied for Law of Large Numbers convergence.`
-          );
-        }
-      }
-
-      // 2. Run Pool Coupon Optimizer (simulates standard draw targets)
-      const poolMatches = currentMatches;
-      const targets = appState.drawTarget;
-      const simCount = appState.nSimulations;
-      
-      const couponsMap = new Map<string, number>();
-
-      for (let sim = 0; sim < simCount; sim++) {
-        let couponStr = "";
-        let drawsCount = 0;
-
-        for (const m of poolMatches) {
-          const pred = m.predictions!;
-          const rand = Math.random();
-
-          if (rand < pred.probH) {
-            couponStr += "H";
-          } else if (rand < pred.probH + pred.probD) {
-            couponStr += "D";
-            drawsCount++;
-          } else {
-            couponStr += "A";
-          }
-        }
-
-        // Keep coupon if it satisfies draw target
-        if (targets.includes(drawsCount)) {
-          couponsMap.set(couponStr, (couponsMap.get(couponStr) || 0) + 1);
-        }
-      }
-
-      // Convert map to sorted coupon list
-      const sortedCoupons: Coupon[] = [];
-      let totalMatchInTarget = 0;
-      couponsMap.forEach((count, str) => {
-        totalMatchInTarget += count;
-      });
-
-      const couponLength = poolMatches.length;
-
-      couponsMap.forEach((count, str) => {
-        const weight = count / totalMatchInTarget;
-        
-        // Compute joint coverage & aggregate EV
-        let jointProb = 1.0;
-        let sumEv = 0;
-        for (let i = 0; i < str.length; i++) {
-          const pick = str[i];
-          const matchPred = poolMatches[i].predictions!;
-          const hOdd = poolMatches[i].spHomeOdd || poolMatches[i].mozzHomeOdd;
-          const dOdd = poolMatches[i].spDrawOdd || poolMatches[i].mozzDrawOdd;
-          const aOdd = poolMatches[i].spAwayOdd || poolMatches[i].mozzAwayOdd;
-
-          if (pick === "H") {
-            jointProb *= matchPred.probH;
-            sumEv += matchPred.evH;
-          } else if (pick === "D") {
-            jointProb *= matchPred.probD;
-            sumEv += matchPred.evD;
-          } else {
-            jointProb *= matchPred.probA;
-            sumEv += matchPred.evA;
-          }
-        }
-
-        sortedCoupons.push({
-          couponString: str,
-          weight: Math.round(weight * 10000) / 10000,
-          weightPct: `${(weight * 100).toFixed(2)}%`,
-          coverage: Math.pow(jointProb, 1 / couponLength), // generic geometric mean probability
-          ev: Math.round((sumEv / couponLength) * 1000) / 1000, // generic average EV
-        });
-      });
-
-      // Sort coupons by weight descending and limit to top 15
-      appState.optimizedCoupons = sortedCoupons
-        .sort((a, b) => b.weight - a.weight)
-        .slice(0, 15);
-
-      // Compute general summary metrics
-      appState.summaryMetrics = {
-        totalExpectedH: rh,
-        totalExpectedD: rd,
-        totalExpectedA: ra,
-        bookieExposure: Math.round((rh * 0.45 - ra * 0.35) * 100) / 100,
-        upsetBudget: couponLength - rh,
-        regime: rd > 5 ? "HIGH_DRAW_REGIME" : "LOW_UPSET_REGIME",
-        // Positional stats
-        repeatedMatchesCount: repeatedMatchesCount || undefined,
-        averagePositionDrift: repeatedMatchesCount ? Math.round((totalDrift / repeatedMatchesCount) * 100) / 100 : undefined,
-        maxPositionalShiftFixture: repeatedMatchesCount ? maxDriftFixture : undefined,
-        drawPatternConformity: repeatedMatchesCount ? Math.round((drawPatternMatches / repeatedMatchesCount) * 100) : undefined,
-      };
+      // 3. Compute general summary metrics
+      appState.summaryMetrics = buildSummaryMetrics(appState.matches, params);
 
       appState.isPredicting = false;
       appState.logs.unshift({
         id: `log_pr_ok_${Date.now()}`,
         timestamp: new Date().toLocaleTimeString(),
         level: "success",
-        message: `Successfully executed ${simCount} Monte Carlo simulations on [${activeType.toUpperCase()}]. Generated ${sortedCoupons.length} valid coupons satisfying Draw Target: [${targets.join(",")}].`,
+        message: `Successfully executed ${simCount} Monte Carlo simulations on [${activeType.toUpperCase()}]. Generated ${appState.optimizedCoupons.length} valid coupons satisfying Draw Target: [${targets.join(",")}].`,
       });
 
-      if (repeatedMatchesCount > 0) {
+      if (repeatedMatchesCount > 0 && appState.summaryMetrics) {
         appState.logs.unshift({
           id: `log_pr_pos_${Date.now()}`,
           timestamp: new Date().toLocaleTimeString(),

@@ -142,6 +142,19 @@ export interface ScrapingLog {
   message: string;
 }
 
+export interface RoundAccuracyRecord {
+  roundNumber: number;
+  date: string;
+  totalMatches: number;
+  correctPicks: number;
+  accuracy: number;
+  brierScore: number;
+  trapAccuracy: number;
+  spellAccuracy: number;
+  drawAccuracy: number;
+  paramSnapshot: Partial<CalibratedParameters>;
+}
+
 export interface DashboardState {
   matches: Match[];
   drawTarget: number[]; // e.g. [3, 4, 5]
@@ -171,6 +184,7 @@ export interface DashboardState {
     drawPatternConformity?: number; // % match of actual to historical structural draws
   };
   calibratedParameters?: CalibratedParameters;
+  accuracyHistory?: RoundAccuracyRecord[];
 }
 
 export interface CalibratedParameters {
