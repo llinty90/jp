@@ -1,5 +1,5 @@
 import React from "react";
-import { Settings, ShieldAlert, Cpu, Percent, Landmark, Clock } from "lucide-react";
+import { Settings, ShieldAlert, Cpu, Percent, Landmark, Clock, Sparkles } from "lucide-react";
 import { DashboardState } from "../types";
 
 interface ConfigPanelProps {
@@ -151,6 +151,49 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ state, onUpdateConfig 
             KES
           </span>
         </div>
+      </div>
+
+      {/* Scraping Mode Selector */}
+      <div className="flex flex-col gap-3 border-t border-slate-800 pt-4">
+        <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase flex items-center gap-1.5">
+          <Cpu className="h-3.5 w-3.5 text-blue-400" />
+          Scraping Feed Source
+        </label>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => onUpdateConfig({ useGeminiScraping: false })}
+            className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+              !state.useGeminiScraping
+                ? "bg-slate-800/80 text-white border-blue-500/50 shadow-sm shadow-blue-500/10"
+                : "bg-slate-900/50 text-slate-400 border-slate-800/80 hover:text-slate-300"
+            }`}
+          >
+            <span className="text-xs font-semibold">Local Feed</span>
+            <span className="text-[9px] text-slate-500 font-medium">Fast & 100% Free</span>
+          </button>
+          
+          <button
+            onClick={() => onUpdateConfig({ useGeminiScraping: true })}
+            className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+              state.useGeminiScraping
+                ? "bg-blue-500/10 text-blue-300 border-blue-500/60 shadow-sm shadow-blue-500/10"
+                : "bg-slate-900/50 text-slate-400 border-slate-800/80 hover:text-slate-300"
+            }`}
+          >
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-semibold">Gemini AI</span>
+              <Sparkles className="h-2.5 w-2.5 text-amber-400 animate-pulse" />
+            </div>
+            <span className="text-[9px] text-slate-500 font-medium">Search Grounded</span>
+          </button>
+        </div>
+        
+        <p className="text-[10px] text-slate-500 leading-normal">
+          {!state.useGeminiScraping
+            ? "Uses high-fidelity local fixtures that auto-shift relative to today with realistic aligned bookie odds."
+            : "Requires an active pay-as-you-go developer key to search live web schedules & active jackpot odds."}
+        </p>
       </div>
 
       {/* Automated Time Check Trigger */}

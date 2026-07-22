@@ -185,6 +185,10 @@ export interface DashboardState {
   };
   calibratedParameters?: CalibratedParameters;
   accuracyHistory?: RoundAccuracyRecord[];
+  isAutoScrapeEnabled?: boolean;
+  lastScrapeTime?: string;
+  autoScrapeIntervalHours?: number;
+  useGeminiScraping?: boolean;
 }
 
 export interface CalibratedParameters {
