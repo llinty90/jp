@@ -9,6 +9,16 @@ interface ManualInputModalProps {
 }
 
 export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClose, onSave }) => {
+  const [homeTeam, setHomeTeam] = useState<string>("");
+  const [awayTeam, setAwayTeam] = useState<string>("");
+  const [matchDate, setMatchDate] = useState<string>("");
+  const [matchTime, setMatchTime] = useState<string>("");
+  const [country, setCountry] = useState<string>("");
+  const [league, setLeague] = useState<string>("");
+  const [mozzHomeOdd, setMozzHomeOdd] = useState<string>("");
+  const [mozzDrawOdd, setMozzDrawOdd] = useState<string>("");
+  const [mozzAwayOdd, setMozzAwayOdd] = useState<string>("");
+
   const [spHomeOdd, setSpHomeOdd] = useState<string>("");
   const [spDrawOdd, setSpDrawOdd] = useState<string>("");
   const [spAwayOdd, setSpAwayOdd] = useState<string>("");
@@ -30,6 +40,16 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
 
   useEffect(() => {
     if (match) {
+      setHomeTeam(match.homeTeam || "");
+      setAwayTeam(match.awayTeam || "");
+      setMatchDate(match.matchDate || "");
+      setMatchTime(match.matchTime || "");
+      setCountry(match.country || "");
+      setLeague(match.league || "");
+      setMozzHomeOdd(match.mozzHomeOdd?.toString() || "");
+      setMozzDrawOdd(match.mozzDrawOdd?.toString() || "");
+      setMozzAwayOdd(match.mozzAwayOdd?.toString() || "");
+
       setSpHomeOdd(match.spHomeOdd?.toString() || "");
       setSpDrawOdd(match.spDrawOdd?.toString() || "");
       setSpAwayOdd(match.spAwayOdd?.toString() || "");
@@ -88,6 +108,15 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
+      homeTeam: homeTeam || undefined,
+      awayTeam: awayTeam || undefined,
+      matchDate: matchDate || undefined,
+      matchTime: matchTime || undefined,
+      country: country || undefined,
+      league: league || undefined,
+      mozzHomeOdd: mozzHomeOdd ? Number(mozzHomeOdd) : undefined,
+      mozzDrawOdd: mozzDrawOdd ? Number(mozzDrawOdd) : undefined,
+      mozzAwayOdd: mozzAwayOdd ? Number(mozzAwayOdd) : undefined,
       spHomeOdd: spHomeOdd ? Number(spHomeOdd) : undefined,
       spDrawOdd: spDrawOdd ? Number(spDrawOdd) : undefined,
       spAwayOdd: spAwayOdd ? Number(spAwayOdd) : undefined,
@@ -131,7 +160,131 @@ export const ManualInputModal: React.FC<ManualInputModalProps> = ({ match, onClo
         </div>
 
         {/* Content Form */}
-        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5 max-h-[75vh] overflow-y-auto">
+          {/* Core Fixture Details */}
+          <div className="flex flex-col gap-3 border-b border-slate-800 pb-4">
+            <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+              Core Fixture Details
+            </span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-sans">HOME TEAM</label>
+                <input
+                  type="text"
+                  required
+                  value={homeTeam}
+                  onChange={(e) => setHomeTeam(e.target.value)}
+                  placeholder="e.g. Neftchi"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-sans">AWAY TEAM</label>
+                <input
+                  type="text"
+                  required
+                  value={awayTeam}
+                  onChange={(e) => setAwayTeam(e.target.value)}
+                  placeholder="e.g. Dinamo Minsk"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-sans">MATCH DATE</label>
+                <input
+                  type="text"
+                  required
+                  value={matchDate}
+                  onChange={(e) => setMatchDate(e.target.value)}
+                  placeholder="e.g. 22.07.2026"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-sans">KICK-OFF TIME</label>
+                <input
+                  type="text"
+                  required
+                  value={matchTime}
+                  onChange={(e) => setMatchTime(e.target.value)}
+                  placeholder="e.g. 19:00"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-sans">COUNTRY</label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="e.g. Europe"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-sans">LEAGUE</label>
+                <input
+                  type="text"
+                  value={league}
+                  onChange={(e) => setLeague(e.target.value)}
+                  placeholder="e.g. Conference League"
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Mozzartbet Odds block */}
+          <div className="flex flex-col gap-2 border-b border-slate-800 pb-4">
+            <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+              Mozzart Bet Odds (1X2)
+            </span>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-mono">HOME (1)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.01"
+                  required
+                  value={mozzHomeOdd}
+                  onChange={(e) => setMozzHomeOdd(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-mono">DRAW (X)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.01"
+                  required
+                  value={mozzDrawOdd}
+                  onChange={(e) => setMozzDrawOdd(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 block mb-1 font-mono">AWAY (2)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1.01"
+                  required
+                  value={mozzAwayOdd}
+                  onChange={(e) => setMozzAwayOdd(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl py-2 px-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Warning context */}
           {!match.spHomeOdd && (
             <div className="bg-rose-950/30 border border-rose-900/50 rounded-xl p-3 flex gap-2.5 items-start text-xs text-rose-300">

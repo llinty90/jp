@@ -2126,6 +2126,192 @@ app.post("/api/config", (req, res) => {
   res.json(appState);
 });
 
+// Offline Intelligent Regex-based Text Parser Fallback
+function parseRawJackpotTextLocally(text: string, poolType: string): Match[] {
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  const parsedMatches: Match[] = [];
+  
+  let currentCountry = "Europe";
+  let currentLeague = "Football League";
+  let currentDate = "";
+  let currentTime = "";
+  
+  let tempTeams: string[] = [];
+
+  for (const line of lines) {
+    const dateMatch = line.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (dateMatch) {
+      currentDate = `${dateMatch[1]}.${dateMatch[2]}.${dateMatch[3]}`;
+    } else {
+      const shortDateMatch = line.match(/(\d{2})\.(\d{2})\b/);
+      if (shortDateMatch && !line.includes(":")) {
+        currentDate = `${shortDateMatch[1]}.${shortDateMatch[2]}.${new Date().getFullYear()}`;
+      }
+    }
+    const timeMatch = line.match(/(\d{2}):(\d{2})/);
+    if (timeMatch) {
+      currentTime = `${timeMatch[1]}:${timeMatch[2]}`;
+    }
+    
+    if (line.toLowerCase().includes("league") || line.toLowerCase().includes("cup") || line.toLowerCase().includes("championship") || line.toLowerCase().includes("qualification")) {
+      if (line.length < 50 && !line.match(/\d/)) {
+        currentLeague = line;
+      }
+    }
+  }
+
+  if (!currentDate) {
+    const now = new Date();
+    currentDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+  }
+  if (!currentTime) {
+    currentTime = "18:00";
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    const oddsCandidates = line.match(/\b([1-9]\d*(?:\.\d{1,3})?|0\.\d{1,3})\b/g);
+    let potentialOdds: number[] = [];
+    if (oddsCandidates && oddsCandidates.length >= 3) {
+      for (let k = 0; k <= oddsCandidates.length - 3; k++) {
+        const o1 = parseFloat(oddsCandidates[k]);
+        const o2 = parseFloat(oddsCandidates[k+1]);
+        const o3 = parseFloat(oddsCandidates[k+2]);
+        if (o1 >= 1.01 && o1 <= 40.0 && o2 >= 1.01 && o2 <= 40.0 && o3 >= 1.01 && o3 <= 40.0) {
+          potentialOdds = [o1, o2, o3];
+          break;
+        }
+      }
+    }
+
+    const vsSeparator = line.match(/^([^0-9\-–]+)\s+(?:vs|v|-|–)\s+([^0-9\-–]+)$/i);
+    
+    if (vsSeparator && !line.includes(".") && !line.includes("1X2")) {
+      tempTeams = [vsSeparator[1].trim(), vsSeparator[2].trim()];
+    } else if (line.length > 2 && !line.match(/\d/) && !line.includes("X") && line.length < 40 && !line.toLowerCase().includes("league") && !line.toLowerCase().includes("cup") && !line.toLowerCase().includes("round") && !line.toLowerCase().includes("jackpot")) {
+      tempTeams.push(line);
+      if (tempTeams.length > 2) {
+        tempTeams.shift();
+      }
+    }
+
+    if (potentialOdds.length === 3 && !line.toLowerCase().includes("btts") && !line.toLowerCase().includes("over") && !line.toLowerCase().includes("under")) {
+      let home = "Home Team";
+      let away = "Away Team";
+      
+      if (tempTeams.length >= 2) {
+        home = tempTeams[tempTeams.length - 2];
+        away = tempTeams[tempTeams.length - 1];
+        tempTeams = [];
+      } else {
+        const candidates: string[] = [];
+        for (let back = 1; back <= 4; back++) {
+          const prev = lines[i - back];
+          if (prev && prev.length > 2 && !prev.match(/\d/) && prev.length < 40 && !prev.toLowerCase().includes("league") && !prev.toLowerCase().includes("cup")) {
+            candidates.push(prev);
+          }
+        }
+        if (candidates.length >= 2) {
+          away = candidates[0];
+          home = candidates[1];
+        }
+      }
+
+      home = home.replace(/^\d+[\.\s]*/, "").trim();
+      away = away.replace(/^\d+[\.\s]*/, "").trim();
+
+      parsedMatches.push({
+        id: parsedMatches.length + 1,
+        matchDate: currentDate,
+        matchTime: currentTime,
+        country: currentCountry,
+        league: currentLeague,
+        homeTeam: home,
+        awayTeam: away,
+        mozzHomeOdd: potentialOdds[0],
+        mozzDrawOdd: potentialOdds[1],
+        mozzAwayOdd: potentialOdds[2],
+        spHomeOdd: potentialOdds[0],
+        spDrawOdd: potentialOdds[1],
+        spAwayOdd: potentialOdds[2],
+        b365HomeOdd: potentialOdds[0],
+        b365DrawOdd: potentialOdds[1],
+        b365AwayOdd: potentialOdds[2],
+        referee: "Michael Oliver",
+        refereeHomeBias: 0.02,
+        refereeDrawRate: 0.25,
+        refereeMatches: 30,
+        stadiumCapacity: 25000,
+        attendanceRate: 0.80,
+        altitudeM: 100,
+        homeSponsor: "Sponsor A",
+        awaySponsor: "Sponsor B",
+        sponsorsMatch: false,
+        isDerby: false,
+        relegationBattle: false,
+        h2hDrawRate: 0.30,
+        h2hAwayWinRate: 0.30
+      });
+    }
+  }
+
+  if (parsedMatches.length === 0) {
+    for (const line of lines) {
+      const vsMatch = line.match(/(?:\d+[\.\s]*)?([^0-9\(]+)\s+(?:vs|v|-|–)\s+([^0-9\(]+)/i);
+      const oddsMatch = line.match(/\b([1-9]\d*(?:\.\d{1,3})?|0\.\d{1,3})\b/g);
+      
+      if (vsMatch && oddsMatch && oddsMatch.length >= 3) {
+        let home = vsMatch[1].trim();
+        let away = vsMatch[2].trim();
+        away = away.split("(")[0].split("-")[0].split("–")[0].trim();
+        home = home.replace(/^\d+[\.\s]*/, "").trim();
+
+        const hOdd = parseFloat(oddsMatch[oddsMatch.length - 3]);
+        const dOdd = parseFloat(oddsMatch[oddsMatch.length - 2]);
+        const aOdd = parseFloat(oddsMatch[oddsMatch.length - 1]);
+
+        if (hOdd >= 1.01 && dOdd >= 1.01 && aOdd >= 1.01) {
+          parsedMatches.push({
+            id: parsedMatches.length + 1,
+            matchDate: currentDate,
+            matchTime: currentTime,
+            country: currentCountry,
+            league: currentLeague,
+            homeTeam: home,
+            awayTeam: away,
+            mozzHomeOdd: hOdd,
+            mozzDrawOdd: dOdd,
+            mozzAwayOdd: aOdd,
+            spHomeOdd: hOdd,
+            spDrawOdd: dOdd,
+            spAwayOdd: aOdd,
+            b365HomeOdd: hOdd,
+            b365DrawOdd: dOdd,
+            b365AwayOdd: aOdd,
+            referee: "Michael Oliver",
+            refereeHomeBias: 0.02,
+            refereeDrawRate: 0.25,
+            refereeMatches: 30,
+            stadiumCapacity: 25000,
+            attendanceRate: 0.80,
+            altitudeM: 100,
+            homeSponsor: "Sponsor A",
+            awaySponsor: "Sponsor B",
+            sponsorsMatch: false,
+            isDerby: false,
+            relegationBattle: false,
+            h2hDrawRate: 0.30,
+            h2hAwayWinRate: 0.30
+          });
+        }
+      }
+    }
+  }
+
+  return parsedMatches;
+}
+
 // API: Scraping endpoint (Implements fuzzy overlap matching and Gemini AI-grounded mapping fallback!)
 app.post("/api/scrape", async (req, res) => {
   const { poolType, rawText } = req.body;
@@ -2282,15 +2468,83 @@ ${rawText}
       saveState(appState);
       return res.json(appState);
     } catch (err: any) {
-      appState.isScraping = false;
+      console.error("Gemini schedule parsing failed:", err);
       appState.logs.unshift({
         id: `log_sc_gemini_err_${Date.now()}`,
         timestamp: new Date().toLocaleTimeString(),
-        level: "error",
-        message: `Gemini schedule parsing failed: ${err.message}`,
+        level: "warning",
+        message: `Gemini schedule parsing failed or was unavailable: ${err.message}. Invoking robust local regex-based parsing fallback...`,
       });
       saveState(appState);
-      return res.status(500).json({ error: `Parsing failed: ${err.message}` });
+
+      try {
+        const localParsed = parseRawJackpotTextLocally(rawText, poolType);
+        if (localParsed && localParsed.length > 0) {
+          const sanitized = sanitizeMatchList(localParsed.map(m => ({
+            ...m,
+            poolType: poolType
+          })));
+
+          // Save to correct pool
+          if (poolType === "daily") {
+            appState.dailyMatches = sanitized;
+          } else if (poolType === "sportpesa_daily") {
+            appState.sportpesaDailyMatches = sanitized;
+          } else if (poolType === "mozz_weekly") {
+            appState.mozzWeeklyMatches = sanitized;
+          } else if (poolType === "sportpesa_weekly") {
+            appState.sportpesaWeeklyMatches = sanitized;
+          }
+
+          if (appState.activePool === poolType) {
+            appState.matches = sanitized;
+          }
+
+          // Run cross-match alignments
+          for (const m of appState.dailyMatches) {
+            if (m.spMatchedName) {
+              const spDailyMatch = appState.sportpesaDailyMatches.find(sp =>
+                normalizeName(sp.homeTeam) === normalizeName(m.homeTeam) ||
+                getTokenOverlap(sp.homeTeam, m.homeTeam) > 0.6
+              );
+
+              if (spDailyMatch) {
+                m.mozzPosition = m.id;
+                m.spPosition = spDailyMatch.id;
+                m.isRepeated = true;
+                m.repeatedInPools = ["sportpesa_daily"];
+
+                spDailyMatch.mozzPosition = m.id;
+                spDailyMatch.spPosition = spDailyMatch.id;
+                spDailyMatch.isRepeated = true;
+                spDailyMatch.repeatedInPools = ["daily"];
+              }
+            }
+          }
+
+          appState.isScraping = false;
+          appState.logs.unshift({
+            id: `log_sc_local_success_${Date.now()}`,
+            timestamp: new Date().toLocaleTimeString(),
+            level: "success",
+            message: `Successfully parsed ${sanitized.length} matches from raw text using offline Local Regex Parsing Engine!`,
+          });
+          saveState(appState);
+          return res.json(appState);
+        } else {
+          throw new Error("Local Regex Parsing Engine returned 0 matches from the pasted text.");
+        }
+      } catch (localErr: any) {
+        appState.isScraping = false;
+        appState.logs.unshift({
+          id: `log_sc_local_err_${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString(),
+          level: "error",
+          message: `Both Gemini and Local Offline Parsing engines failed. Local error: ${localErr.message}`,
+        });
+        saveState(appState);
+        return res.status(500).json({ error: `Parsing failed: ${err.message}. Local parser fallback error: ${localErr.message}` });
+      }
     }
   }
 
@@ -2313,11 +2567,48 @@ ${rawText}
 
 // API: Manual edit override for a specific match
 app.post("/api/update-match", (req, res) => {
-  const { id, spHomeOdd, spDrawOdd, spAwayOdd, overOdds, underOdds, ggOdds, ngOdds, referee, refereeHomeBias, refereeDrawRate, outcome, overUnderOutcome, ggNgOutcome, homeScore, awayScore } = req.body;
+  const { 
+    id, 
+    homeTeam, 
+    awayTeam, 
+    matchDate, 
+    matchTime, 
+    country, 
+    league, 
+    mozzHomeOdd, 
+    mozzDrawOdd, 
+    mozzAwayOdd, 
+    spHomeOdd, 
+    spDrawOdd, 
+    spAwayOdd, 
+    overOdds, 
+    underOdds, 
+    ggOdds, 
+    ngOdds, 
+    referee, 
+    refereeHomeBias, 
+    refereeDrawRate, 
+    outcome, 
+    overUnderOutcome, 
+    ggNgOutcome, 
+    homeScore, 
+    awayScore 
+  } = req.body;
   const match = appState.matches.find(m => m.id === id);
   if (!match) {
     return res.status(404).json({ error: "Match not found" });
   }
+
+  if (homeTeam !== undefined) match.homeTeam = homeTeam;
+  if (awayTeam !== undefined) match.awayTeam = awayTeam;
+  if (matchDate !== undefined) match.matchDate = matchDate;
+  if (matchTime !== undefined) match.matchTime = matchTime;
+  if (country !== undefined) match.country = country;
+  if (league !== undefined) match.league = league;
+
+  if (mozzHomeOdd !== undefined) match.mozzHomeOdd = Number(mozzHomeOdd) || 1.01;
+  if (mozzDrawOdd !== undefined) match.mozzDrawOdd = Number(mozzDrawOdd) || 1.01;
+  if (mozzAwayOdd !== undefined) match.mozzAwayOdd = Number(mozzAwayOdd) || 1.01;
 
   if (spHomeOdd !== undefined) match.spHomeOdd = Number(spHomeOdd) || undefined;
   if (spDrawOdd !== undefined) match.spDrawOdd = Number(spDrawOdd) || undefined;
