@@ -1,5 +1,5 @@
 import React from "react";
-import { Settings, ShieldAlert, Cpu, Percent, Landmark } from "lucide-react";
+import { Settings, ShieldAlert, Cpu, Percent, Landmark, Clock } from "lucide-react";
 import { DashboardState } from "../types";
 
 interface ConfigPanelProps {
@@ -151,6 +151,55 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({ state, onUpdateConfig 
             KES
           </span>
         </div>
+      </div>
+
+      {/* Automated Time Check Trigger */}
+      <div className="flex flex-col gap-3 border-t border-slate-800 pt-4">
+        <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5 text-blue-500" />
+          Time Check Trigger Scraper
+        </label>
+        
+        <div className="flex items-center justify-between text-xs bg-slate-800/50 p-2.5 rounded-xl border border-slate-800">
+          <span className="text-slate-400">Auto Scraping Status</span>
+          <button
+            onClick={() => onUpdateConfig({ isAutoScrapeEnabled: !state.isAutoScrapeEnabled })}
+            className={`px-3 py-1 text-xs font-mono font-semibold rounded-lg border transition-all cursor-pointer ${
+              state.isAutoScrapeEnabled
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                : "bg-slate-800 text-slate-500 border-slate-700/50"
+            }`}
+          >
+            {state.isAutoScrapeEnabled ? "ACTIVE (Auto)" : "DISABLED"}
+          </button>
+        </div>
+
+        {state.isAutoScrapeEnabled && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between text-xs font-mono text-slate-500">
+              <span>Trigger Interval</span>
+              <span className="text-slate-300 font-semibold">{state.autoScrapeIntervalHours || 4} Hours</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="12"
+              step="1"
+              value={state.autoScrapeIntervalHours || 4}
+              onChange={e => onUpdateConfig({ autoScrapeIntervalHours: Number(e.target.value) })}
+              className="w-full accent-blue-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
+        )}
+
+        {state.lastScrapeTime && (
+          <div className="text-[10px] text-slate-500 font-mono flex justify-between items-center bg-slate-950/40 p-2 rounded-lg">
+            <span>Last Auto-Scrape:</span>
+            <span className="text-slate-400 font-semibold">
+              {new Date(state.lastScrapeTime).toLocaleTimeString()} ({new Date(state.lastScrapeTime).toLocaleDateString()})
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
